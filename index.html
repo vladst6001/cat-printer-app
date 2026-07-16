@@ -306,6 +306,8 @@
       }
     }
 
+    var allChars = [];
+
     async function connectToDevice(btDevice) {
       addLog('Подключение к ' + btDevice.name + '...');
       showToast('Подключение...', 'info');
@@ -318,7 +320,7 @@
         addLog('Сервисов: ' + services.length);
 
         txChar = null;
-        useCatProtocol = false;
+        allChars = [];
 
         for (var i = 0; i < services.length; i++) {
           var s = services[i];
@@ -333,40 +335,42 @@
               if (c.properties.writeWithoutResponse) props.push('Wn');
               if (c.properties.notify) props.push('N');
               addLog('  Char: ' + c.uuid + ' [' + props.join(' ') + ']', 'warn');
-
-              if (c.uuid === CAT_PRINTER_TX) {
-                txChar = c;
-                useCatProtocol = true;
-                addLog('  >>> CAT PRINTER TX НАЙДЕН!', 'success');
-              } else if (!txChar && (c.properties.write || c.properties.writeWithoutResponse)) {
-                txChar = c;
-              }
-
-              if (c.uuid === CAT_PRINTER_NOTIFY) {
-                try {
-                  await c.startNotifications();
-                  c.addEventListener('characteristicvaluechanged', function(e) {
-                    var val = new Uint8Array(e.target.value.buffer);
-                    addLog('RX: ' + Array.from(val).map(function(b) { return b.toString(16).padStart(2,'0'); }).join(' '));
-                  });
-                  addLog('  >>> CAT PRINTER NOTIFY!', 'success');
-                } catch(e) {}
-              }
+              allChars.push(c);
             }
           } catch(e) {
             addLog('  Ошибка: ' + e.message, 'error');
           }
         }
 
-        if (!txChar) {
-          throw new Error('Write characteristic не найден');
-        }
+        if (allChars.length === 0) throw new Error('Нет characteristics');
 
-        addLog('TX: ' + txChar.uuid + (useCatProtocol ? ' (Cat Printer protocol)' : ' (ISSC bridge)'), 'success');
+        for (var i = 0; i < allChars.length; i++) {
+          var c = allChars[i];
+          if (c.properties.writeWithoutResponse) {
+            txChar = c;
+            break;
+          }
+        }
+        if (!txChar) txChar = allChars[0];
+
+        addLog('Выбран TX: ' + txChar.uuid, 'success');
+
+        for (var i = 0; i < allChars.length; i++) {
+          var c = allChars[i];
+          if (c.properties.notify) {
+            try {
+              await c.startNotifications();
+              c.addEventListener('characteristicvaluechanged', function(e) {
+                var val = new Uint8Array(e.target.value.buffer);
+                addLog('RX [' + e.target.uuid.substring(0,8) + ']: ' + Array.from(val).map(function(b) { return b.toString(16).padStart(2,'0'); }).join(' '));
+              });
+            } catch(e) {}
+          }
+        }
 
         btDevice.addEventListener('gattserverdisconnected', function() {
           addLog('Отключено', 'error');
-          device = null; txChar = null; useCatProtocol = false; setStatus(false);
+          device = null; txChar = null; allChars = []; setStatus(false);
         });
 
         device = btDevice;
@@ -460,7 +464,7 @@
         showToast('Не подключён', 'error');
         return;
       }
-      addLog('=== ПЕЧАТЬ (Cat Printer protocol) ===', 'success');
+      addLog('=== ПЕЧАТЬ ===', 'success');
       btnPrint.disabled = true;
       showToast('⏳ Печатается...', 'info', 5000);
 
@@ -468,17 +472,72 @@
         var receiptText = generateReceiptText();
         addLog('Чек: ' + receiptText.length + ' символов');
 
-        if (useCatProtocol) {
-          addLog('Используем Cat Printer native protocol', 'success');
-          await printCatProtocol(receiptText);
-        } else {
-          addLog('Используем ESC/POS через ISSC bridge', 'warn');
-          await printEscPos(receiptText);
+        var receiptCanvas = document.createElement('canvas');
+        receiptCanvas.width = PRINTER_WIDTH;
+        var lines = receiptText.split('\n');
+        var lineH = 24;
+        receiptCanvas.height = lines.length * lineH;
+        var ctx = receiptCanvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, PRINTER_WIDTH, receiptCanvas.height);
+        ctx.fillStyle = '#000';
+        ctx.font = '18px monospace';
+        ctx.textBaseline = 'top';
+        lines.forEach(function(line, i) {
+          ctx.fillText(line, 8, i * lineH + 4);
+        });
+        var imgData = ctx.getImageData(0, 0, PRINTER_WIDTH, receiptCanvas.height);
+
+        var widthBytes = Math.ceil(PRINTER_WIDTH / 8);
+        var height = receiptCanvas.height;
+
+        var allPayloads = [];
+        for (var y = 0; y < height; y++) {
+          var rowData = new Uint8Array(widthBytes);
+          for (var x = 0; x < PRINTER_WIDTH; x++) {
+            var idx = (y * PRINTER_WIDTH + x) * 4;
+            if (imgData.data[idx] < 128) {
+              rowData[Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
+            }
+          }
+          for (var b = 0; b < widthBytes; b++) rowData[b] = revBits(rowData[b]);
+          allPayloads.push(makeCatCommand(0xA2, rowData));
+        }
+        allPayloads.push(makeCatCommand(0xA1, new Uint8Array([0x80, 0x00])));
+
+        var totalBytes = 0;
+        allPayloads.forEach(function(p) { totalBytes += p.length; });
+        addLog('Cat Printer protocol: ' + allPayloads.length + ' команд, ' + totalBytes + ' байт');
+
+        var charsToTry = allChars.filter(function(c) {
+          return c.properties.write || c.properties.writeWithoutResponse;
+        });
+
+        addLog('Пробуем ' + charsToTry.length + ' characteristics...');
+
+        for (var ci = 0; ci < charsToTry.length; ci++) {
+          var targetChar = charsToTry[ci];
+          addLog('--- Пробуем: ' + targetChar.uuid.substring(0, 8) + ' ---', 'warn');
+
+          try {
+            for (var pi = 0; pi < allPayloads.length; pi++) {
+              try {
+                await targetChar.writeValueWithoutResponse(allPayloads[pi]);
+              } catch(e2) {
+                await targetChar.writeValue(allPayloads[pi]);
+              }
+              if (pi % 100 === 0 && pi > 0) await sleep(10);
+            }
+            addLog('OK через ' + targetChar.uuid.substring(0, 8), 'success');
+            break;
+          } catch(e) {
+            addLog('Ошибка: ' + e.message, 'error');
+          }
         }
 
         await sleep(2000);
         addLog('Готово!', 'success');
-        showToast('✅ Напечатано!', 'success');
+        showToast('✅ Отправлено!', 'success');
       } catch (err) {
         addLog('Ошибка: ' + err.message, 'error');
         showToast('❌ ' + err.message, 'error');
