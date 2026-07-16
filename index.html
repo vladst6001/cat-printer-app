@@ -71,13 +71,11 @@
       <div class="item-row">
         <input type="text" value="Шаурма классическая">
         <input type="number" value="1" min="1" max="99">
-        <input type="number" value="8.50" min="0" step="0.01">
         <button class="item-remove" onclick="removeItem(this)">&times;</button>
       </div>
       <div class="item-row">
         <input type="text" value="Чипсы из лаваша">
         <input type="number" value="1" min="1" max="99">
-        <input type="number" value="3.00" min="0" step="0.01">
         <button class="item-remove" onclick="removeItem(this)">&times;</button>
       </div>
     </div>
@@ -93,11 +91,6 @@
         <label>Шрифт</label>
         <input type="range" id="fontSize" min="12" max="40" value="25" oninput="updPreview()">
         <span id="fontSizeVal" style="text-align:center;color:#888;font-size:12px">25px</span>
-      </div>
-      <div class="input-group" style="flex:1;min-width:90px">
-        <label>Ширина текста</label>
-        <input type="range" id="textScale" min="100" max="200" value="100" oninput="updPreview()">
-        <span id="textScaleVal" style="text-align:center;color:#888;font-size:12px">100%</span>
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>Межстрочный</label>
@@ -118,11 +111,6 @@
         <label>Между позициями</label>
         <input type="range" id="itemGap" min="0" max="5" value="1" oninput="updPreview()">
         <span id="itemGapVal" style="text-align:center;color:#888;font-size:12px">1</span>
-      </div>
-      <div class="input-group" style="flex:1;min-width:90px">
-        <label>После итого</label>
-        <input type="range" id="afterTotal" min="0" max="5" value="0" oninput="updPreview()">
-        <span id="afterTotalVal" style="text-align:center;color:#888;font-size:12px">0</span>
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>Отступ слева</label>
@@ -166,31 +154,36 @@
     function log(m,c){var ts=new Date().toLocaleTimeString();var div=document.createElement('div');div.className='log-entry'+(c?' '+c:'');div.textContent='['+ts+'] '+m;logBox.appendChild(div);logBox.scrollTop=logBox.scrollHeight}
     function setStatus(ok,name){document.getElementById('statusDot').className=ok?'status-dot connected':'status-dot';document.getElementById('statusText').textContent=ok?'Подключён':'Не подключён';document.getElementById('printerName').textContent=name||'';document.getElementById('btnPrint').disabled=!ok;document.getElementById('btnDisconnect').style.display=ok?'block':'none'}
     function disconnectPrinter(){if(device&&device.gatt.connected)device.gatt.disconnect();device=null;txChar=null;setStatus(false);log('Отключено','error')}
-    function addItem(){var l=document.getElementById('itemsList');var r=document.createElement('div');r.className='item-row';r.innerHTML='<input type="text" placeholder="Название"><input type="number" value="1" min="1"><input type="number" value="0.00" min="0" step="0.01"><button class="item-remove" onclick="removeItem(this)">&times;</button>';l.appendChild(r)}
+    function addItem(){var l=document.getElementById('itemsList');var r=document.createElement('div');r.className='item-row';r.innerHTML='<input type="text" placeholder="Название"><input type="number" value="1" min="1"><button class="item-remove" onclick="removeItem(this)">&times;</button>';l.appendChild(r)}
     function removeItem(b){var l=document.getElementById('itemsList');if(l.children.length>1)b.parentElement.remove()}
-    function getItems(){var items=[];document.querySelectorAll('#itemsList .item-row').forEach(function(r){var i=r.querySelectorAll('input');var n=i[0].value.trim(),q=parseInt(i[1].value)||1,p=parseFloat(i[2].value)||0;if(n)items.push({name:n,qty:q,price:p})});return items}
+    function getItems(){var items=[];document.querySelectorAll('#itemsList .item-row').forEach(function(r){var i=r.querySelectorAll('input');var n=i[0].value.trim(),q=parseInt(i[1].value)||1;if(n)items.push({name:n,qty:q})});return items}
     function nl(n){var s='';for(var i=0;i<n;i++)s+='\n';return s}
 
     function genText(){
       var shop=(document.getElementById('shopName').value||'МАГАЗИН').toUpperCase();
       var custom=document.getElementById('customText').value.trim();
       var items=getItems();
-      var num=Math.floor(Math.random()*9000)+1000;
+      var num=Math.floor(Math.random() * 9000) + 1000;
       var now=new Date(),ds=now.toLocaleDateString('ru-RU'),ts=now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
-      var total=0;items.forEach(function(it){total+=it.qty*it.price});
-      var as=parseInt(document.getElementById('afterShop').value)||0;
-      var ah=parseInt(document.getElementById('afterHead').value)||0;
       var ig=parseInt(document.getElementById('itemGap').value)||1;
-      var at=parseInt(document.getElementById('afterTotal').value)||0;
       var fd=parseInt(document.getElementById('feedLines').value)||0;
       var sep='================================';
-      var t=sep+nl(2)+shop+nl(as)+sep+nl(ah);
-      t+='ЗАКАЗ #'+num+'\n'+ds+'  '+ts+'\n\n--------------------------------\n';
+
+      var t=sep+'\n\n';
+      t+=shop+'\n\n';
+      t+=sep+'\n\n';
+      t+='ЗАКАЗ #'+num+'\n\n';
+      t+=ds+'  '+ts+'\n\n';
+      t+=sep+'\n\n';
+
       items.forEach(function(it){
-        t+=nl(ig)+it.name+'\n  '+it.qty+' x '+it.price.toFixed(2)+' = '+(it.qty*it.price).toFixed(2)+'\n';
+        var line=it.qty+'x '+it.name;
+        t+=line+'\n';
+        t+=nl(ig);
       });
-      t+='\n--------------------------------\n'+nl(at);
-      t+='ИТОГО:  '+total.toFixed(2)+' руб.\n\n'+sep+'\n';
+
+      t+=sep+'\n';
+
       if(custom)t+='\n'+custom+'\n\n'+sep+'\n';
       t+='\n     Спасибо!\n'+nl(fd);
       return t;
@@ -198,47 +191,33 @@
 
     function updPreview(){
       var fs=parseInt(document.getElementById('fontSize').value)||25;
-      var ts=parseInt(document.getElementById('textScale').value)||100;
       var lg=parseInt(document.getElementById('lineGap').value)||0;
-      var as=parseInt(document.getElementById('afterShop').value)||0;
-      var ah=parseInt(document.getElementById('afterHead').value)||0;
       var ig=parseInt(document.getElementById('itemGap').value)||1;
-      var at=parseInt(document.getElementById('afterTotal').value)||0;
       var pl=parseInt(document.getElementById('padLeft').value)||4;
       var fd=parseInt(document.getElementById('feedLines').value)||0;
 
       document.getElementById('fontSizeVal').textContent=fs+'px';
-      document.getElementById('textScaleVal').textContent=ts+'%';
       document.getElementById('lineGapVal').textContent=lg;
-      document.getElementById('afterShopVal').textContent=as;
-      document.getElementById('afterHeadVal').textContent=ah;
       document.getElementById('itemGapVal').textContent=ig;
-      document.getElementById('afterTotalVal').textContent=at;
       document.getElementById('padLeftVal').textContent=pl;
       document.getElementById('feedVal').textContent=fd;
 
       var text=genText();
       var lines=text.split('\n');
       var lh=Math.round(fs*1.25)+lg;
-      var scaleX=ts/100;
-      var outW=Math.round(W*scaleX);
       var totalH=lines.length*lh+20;
 
       var cv=document.getElementById('previewCanvas');
-      cv.width=outW;cv.height=totalH;
+      cv.width=W;cv.height=totalH;
       var cx=cv.getContext('2d');
-      cx.fillStyle='#fff';cx.fillRect(0,0,outW,totalH);
+      cx.fillStyle='#fff';cx.fillRect(0,0,W,totalH);
       cx.fillStyle='#000';
       cx.font=fs+'px monospace';
       cx.textBaseline='top';
-      cx.save();
-      cx.scale(scaleX,1);
-      lines.forEach(function(l,i){cx.fillText(l,pl/scaleX,i*lh+4)});
-      cx.restore();
+      lines.forEach(function(l,i){cx.fillText(l,pl,i*lh+4)});
 
       localStorage.setItem('yhk_settings',JSON.stringify({
-        fontSize:fs,textScale:ts,lineGap:lg,afterShop:as,afterHead:ah,
-        itemGap:ig,afterTotal:at,padLeft:pl,feedLines:fd
+        fontSize:fs,lineGap:lg,itemGap:ig,padLeft:pl,feedLines:fd
       }));
     }
 
@@ -308,19 +287,14 @@
         log('Генерация canvas...');
 
         var fs=parseInt(document.getElementById('fontSize').value)||25;
-        var ts=parseInt(document.getElementById('textScale').value)||100;
         var lg=parseInt(document.getElementById('lineGap').value)||0;
         var pl=parseInt(document.getElementById('padLeft').value)||4;
-        var scaleX=ts/100;
-        var outW=Math.round(W*scaleX);
         var ls=text.split('\n'),lh=Math.round(fs*1.25)+lg;
-        var cv=document.createElement('canvas');cv.width=outW;cv.height=ls.length*lh+20;
-        var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,outW,cv.height);
+        var cv=document.createElement('canvas');cv.width=W;cv.height=ls.length*lh+20;
+        var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,W,cv.height);
         cx.fillStyle='#000';cx.font=fs+'px monospace';cx.textBaseline='top';
-        cx.save();cx.scale(scaleX,1);
-        ls.forEach(function(l,i){cx.fillText(l,pl/scaleX,i*lh+4)});
-        cx.restore();
-        log('Шрифт: '+fs+'px, ширина: '+ts+'%, высота: '+cv.height+'px');
+        ls.forEach(function(l,i){cx.fillText(l,pl,i*lh+4)});
+        log('Шрифт: '+fs+'px, высота: '+cv.height+'px');
 
         log('Конвертация в bitmap...');
         var imgData=cx.getImageData(0,0,W,cv.height);
