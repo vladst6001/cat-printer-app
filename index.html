@@ -51,10 +51,7 @@
       background: #34c759;
       box-shadow: 0 0 8px rgba(52, 199, 89, 0.5);
     }
-    .status-text {
-      font-size: 15px;
-      font-weight: 500;
-    }
+    .status-text { font-size: 15px; font-weight: 500; }
     .printer-name {
       margin-left: auto;
       font-size: 13px;
@@ -83,6 +80,8 @@
     .btn-primary:hover { background: #1d4ed8; }
     .btn-print { background: #16a34a; color: #fff; }
     .btn-print:hover { background: #15803d; }
+    .btn-disconnect { background: #991b1b; color: #fff; font-size: 14px; padding: 12px; }
+    .btn-disconnect:hover { background: #7f1d1d; }
     .btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
     .spinner {
       display: inline-block;
@@ -134,60 +133,96 @@
       text-transform: uppercase;
       letter-spacing: 1px;
     }
+    .log-box {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 11px;
+      color: #888;
+      line-height: 1.6;
+    }
+    .log-entry { white-space: pre-wrap; word-break: break-all; }
+    .log-entry.error { color: #f87171; }
+    .log-entry.success { color: #4ade80; }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="header">Cat Printer Test</div>
+
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
       <span class="status-text" id="statusText">Не подключён</span>
       <span class="printer-name" id="printerName"></span>
     </div>
-    <button class="btn btn-primary" id="btnScan" onclick="startScan()">Найти принтер</button>
+
+    <button class="btn btn-primary" id="btnScan" onclick="startScan()">
+      Найти принтер
+    </button>
+
     <div class="section-label">Найденные устройства</div>
     <div class="printer-list" id="printerList">
       <div class="empty-state">Нажмите «Найти принтер»</div>
     </div>
-    <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>Напечатать тестовый чек</button>
+
+    <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>
+      Напечатать тестовый чек
+    </button>
+
+    <button class="btn btn-disconnect" id="btnDisconnect" onclick="disconnectPrinter()" style="display:none">
+      Отключиться
+    </button>
+
+    <div class="section-label">Лог</div>
+    <div class="log-box" id="logBox"></div>
   </div>
+
   <div class="toast toast-info" id="toast"></div>
   <canvas id="receiptCanvas" style="display:none"></canvas>
 
   <script>
-    const CAT_PRINTER_SERVICE = '0000fee7-0000-1000-8000-00805f9b34fb';
-    const CHAR_WRITE = '0000fee9-0000-1000-8000-00805f9b34fb';
-    const CHAR_NOTIFY = '0000fee8-0000-1000-8000-00805f9b34fb';
+    var CAT_PRINTER_SERVICE = '0000fee7-0000-1000-8000-00805f9b34fb';
+    var CHAR_WRITE = '0000fee9-0000-1000-8000-00805f9b34fb';
+    var CHAR_NOTIFY = '0000fee8-0000-1000-8000-00805f9b34fb';
 
-    let device = null;
-    let server = null;
-    let service = null;
-    let writeChar = null;
-    let notifyChar = null;
-    let printers = [];
+    var device = null;
+    var server = null;
+    var service = null;
+    var writeChar = null;
+    var notifyChar = null;
 
-    const btnScan = document.getElementById('btnScan');
-    const btnPrint = document.getElementById('btnPrint');
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    const printerNameEl = document.getElementById('printerName');
-    const printerList = document.getElementById('printerList');
-    const toastEl = document.getElementById('toast');
+    var btnScan = document.getElementById('btnScan');
+    var btnPrint = document.getElementById('btnPrint');
+    var btnDisconnect = document.getElementById('btnDisconnect');
+    var statusDot = document.getElementById('statusDot');
+    var statusText = document.getElementById('statusText');
+    var printerNameEl = document.getElementById('printerName');
+    var printerList = document.getElementById('printerList');
+    var toastEl = document.getElementById('toast');
+    var logBox = document.getElementById('logBox');
 
-    let toastTimeout = null;
+    var toastTimeout = null;
     function showToast(msg, type, duration) {
       type = type || 'info';
       duration = duration || 3000;
-      console.log('[UI] Toast: ' + msg);
       clearTimeout(toastTimeout);
       toastEl.textContent = msg;
       toastEl.className = 'toast toast-' + type + ' show';
       toastTimeout = setTimeout(function() { toastEl.classList.remove('show'); }, duration);
     }
 
-    function log(tag, msg) {
+    function addLog(msg, cls) {
       var ts = new Date().toLocaleTimeString();
-      console.log('[' + ts + '][' + tag + '] ' + msg);
+      var div = document.createElement('div');
+      div.className = 'log-entry' + (cls ? ' ' + cls : '');
+      div.textContent = '[' + ts + '] ' + msg;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+      console.log('[' + ts + '] ' + msg);
     }
 
     function setStatus(connected, name) {
@@ -195,94 +230,122 @@
       statusText.textContent = connected ? 'Подключён' : 'Не подключён';
       printerNameEl.textContent = name || '';
       btnPrint.disabled = !connected;
+      btnDisconnect.style.display = connected ? 'block' : 'none';
+    }
+
+    function disconnectPrinter() {
+      if (device && device.gatt.connected) {
+        device.gatt.disconnect();
+      }
+      onDisconnect();
     }
 
     async function startScan() {
-      log('SCAN', 'Запуск сканирования...');
+      addLog('Сканирование...', 'success');
       btnScan.disabled = true;
       btnScan.innerHTML = '<span class="spinner"></span> Поиск...';
       printerList.innerHTML = '';
-      printers = [];
 
       try {
         var btDevice = await navigator.bluetooth.requestDevice({
-          filters: [{ services: [CAT_PRINTER_SERVICE] }],
-          optionalServices: [CAT_PRINTER_SERVICE]
+          acceptAllDevices: true,
+          optionalServices: [
+            CAT_PRINTER_SERVICE,
+            '0000ffe0-0000-1000-8000-00805f9b34fb',
+            '0000fff0-0000-1000-8000-00805f9b34fb',
+            '000018f0-0000-1000-8000-00805f9b34fb'
+          ]
         });
-        log('SCAN', 'Найдено: ' + (btDevice.name || 'Без имени') + ' (' + btDevice.id + ')');
-        printers = [btDevice];
-        renderPrinterList();
-        showToast('Найден: ' + (btDevice.name || 'Принтер'), 'success');
+
+        addLog('Выбрано: ' + (btDevice.name || 'Без имени') + ' [' + btDevice.id + ']', 'success');
+        await connectToDevice(btDevice);
       } catch (err) {
-        log('SCAN', 'Ошибка: ' + err.message);
-        if (err.message.includes('cancel')) {
+        addLog('Ошибка поиска: ' + err.message, 'error');
+        if (err.message.indexOf('cancel') >= 0) {
           showToast('Поиск отменён', 'info');
         } else {
-          showToast('Ошибка поиска: ' + err.message, 'error');
+          showToast('Ошибка: ' + err.message, 'error');
         }
-        printerList.innerHTML = '<div class="empty-state">Устройства не найдены</div>';
+        printerList.innerHTML = '<div class="empty-state">Устройство не выбрано</div>';
       } finally {
         btnScan.disabled = false;
         btnScan.innerHTML = 'Найти принтер';
       }
     }
 
-    function renderPrinterList() {
-      if (printers.length === 0) {
-        printerList.innerHTML = '<div class="empty-state">Нажмите «Найти принтер»</div>';
-        return;
-      }
-      printerList.innerHTML = printers.map(function(p, i) {
-        return '<div class="printer-item" onclick="connectPrinter(' + i + ')">' +
-          '<div>' +
-            '<div class="printer-item-name">' + (p.name || 'Принтер') + '</div>' +
-            '<div class="printer-item-id">' + p.id + '</div>' +
-          '</div>' +
-          '<button class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:14px">Подключиться</button>' +
-        '</div>';
-      }).join('');
-      log('SCAN', 'Показано устройств: ' + printers.length);
-    }
-
-    async function connectPrinter(index) {
-      var btDevice = printers[index];
-      log('CONNECT', 'Подключение к ' + (btDevice.name || btDevice.id) + '...');
+    async function connectToDevice(btDevice) {
+      addLog('Подключение к ' + (btDevice.name || btDevice.id) + '...');
       showToast('Подключение...', 'info');
 
       try {
         server = await btDevice.gatt.connect();
-        log('CONNECT', 'GATT подключён');
+        addLog('GATT подключён');
 
-        service = await server.getPrimaryService(CAT_PRINTER_SERVICE);
-        log('CONNECT', 'Сервис получен');
+        var services = await server.getPrimaryServices();
+        addLog('Найдено сервисов: ' + services.length);
 
-        writeChar = await service.getCharacteristic(CHAR_WRITE);
-        log('CONNECT', 'Write characteristic получен');
+        for (var i = 0; i < services.length; i++) {
+          var s = services[i];
+          addLog('  Сервис: ' + s.uuid);
+          var chars = await s.getCharacteristics();
+          for (var j = 0; j < chars.length; j++) {
+            addLog('    Characteristic: ' + chars[j].uuid +
+              ' [props: ' +
+              (chars[j].properties.write ? 'WRITE ' : '') +
+              (chars[j].properties.writeWithoutResponse ? 'WRITE_NORSP ' : '') +
+              (chars[j].properties.notify ? 'NOTIFY ' : '') +
+              (chars[j].properties.read ? 'READ' : '') +
+              ']');
+          }
+        }
 
-        notifyChar = await service.getCharacteristic(CHAR_NOTIFY);
-        log('CONNECT', 'Notify characteristic получен');
+        service = null;
+        writeChar = null;
+        notifyChar = null;
 
-        await notifyChar.startNotifications();
-        notifyChar.addEventListener('characteristicvaluechanged', onNotify);
-        log('CONNECT', 'Notify подписка активна');
+        for (var i = 0; i < services.length; i++) {
+          var chars = await services[i].getCharacteristics();
+          for (var j = 0; j < chars.length; j++) {
+            var c = chars[j];
+            if ((c.properties.write || c.properties.writeWithoutResponse) && !writeChar) {
+              writeChar = c;
+              service = services[i];
+              addLog('Write characteristic: ' + c.uuid);
+            }
+            if (c.properties.notify && !notifyChar) {
+              notifyChar = c;
+              addLog('Notify characteristic: ' + c.uuid);
+            }
+          }
+        }
+
+        if (!writeChar) {
+          throw new Error('Write characteristic не найден');
+        }
+
+        if (notifyChar) {
+          await notifyChar.startNotifications();
+          notifyChar.addEventListener('characteristicvaluechanged', onNotify);
+          addLog('Notify подписка активна');
+        }
 
         btDevice.addEventListener('gattserverdisconnected', onDisconnect);
 
         device = btDevice;
         setStatus(true, btDevice.name || 'Принтер');
         showToast('Подключён: ' + (btDevice.name || 'Принтер'), 'success');
-        log('CONNECT', 'Подключение успешно');
+        addLog('Подключение успешно!', 'success');
 
         await sendHandshake();
       } catch (err) {
-        log('CONNECT', 'Ошибка: ' + err.message);
-        showToast('Ошибка подключения: ' + err.message, 'error');
+        addLog('Ошибка подключения: ' + err.message, 'error');
+        showToast('Ошибка: ' + err.message, 'error');
         setStatus(false);
       }
     }
 
     function onDisconnect() {
-      log('CONNECT', 'Устройство отключено');
+      addLog('Устройство отключено', 'error');
       device = null;
       server = null;
       service = null;
@@ -295,14 +358,18 @@
     function onNotify(event) {
       var val = new Uint8Array(event.target.value.buffer);
       var hex = Array.from(val).map(function(b) { return b.toString(16).padStart(2, '0'); }).join(' ');
-      log('NOTIFY', 'Ответ от принтера (' + val.length + ' байт): ' + hex);
+      addLog('Ответ: ' + hex);
     }
 
     async function sendCommand(data) {
       if (!writeChar) throw new Error('Write characteristic не доступен');
       var hex = Array.from(data).map(function(b) { return b.toString(16).padStart(2, '0'); }).join(' ');
-      log('SEND', 'Отправка ' + data.length + ' байт: ' + hex);
-      await writeChar.writeValue(data);
+      addLog('TX (' + data.length + '): ' + hex);
+      if (writeChar.properties.writeWithoutResponse) {
+        await writeChar.writeValueWithoutResponse(data);
+      } else {
+        await writeChar.writeValue(data);
+      }
     }
 
     async function sendHandshake() {
@@ -311,9 +378,9 @@
         0x73, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x20, 0x73, 0x74, 0x61,
         0x72, 0x74, 0x0d, 0x0a
       ]);
-      log('PRINT', 'Handshake отправлен');
+      addLog('Handshake...');
       await sendCommand(cmd);
-      await sleep(200);
+      await sleep(300);
     }
 
     async function printReceipt() {
@@ -322,7 +389,7 @@
         return;
       }
 
-      log('PRINT', '=== НАЧАЛО ПЕЧАТИ ===');
+      addLog('=== ПЕЧАТЬ ===', 'success');
       btnPrint.disabled = true;
       showToast('⏳ Чек печатается...', 'info', 5000);
 
@@ -332,7 +399,7 @@
         var dateStr = now.toLocaleDateString('ru-RU');
         var timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-        log('PRINT', 'Заказ #' + orderNum + ', ' + dateStr + ' ' + timeStr);
+        addLog('Заказ #' + orderNum);
 
         var lines = [
           '================================',
@@ -351,25 +418,22 @@
         ];
 
         var bitmap = renderReceiptToBitmap(lines);
-        log('PRINT', 'Bitmap сгенерирован: ' + bitmap.width + 'x' + bitmap.height);
+        addLog('Bitmap: ' + bitmap.width + 'x' + bitmap.height);
 
         await sendHandshake();
         await sleep(300);
 
-        await setPrintSpeed(4);
-        await sleep(100);
-
         await sendBitmapData(bitmap);
         await sleep(200);
 
-        await feedPaper(60);
+        await feedPaper(50);
         await sleep(100);
 
-        log('PRINT', '=== ПЕЧАТЬ ЗАВЕРШЕНА ===');
+        addLog('Печать завершена!', 'success');
         showToast('✅ Чек напечатан!', 'success');
       } catch (err) {
-        log('PRINT', 'Ошибка печати: ' + err.message);
-        showToast('❌ Ошибка печати: ' + err.message, 'error');
+        addLog('Ошибка печати: ' + err.message, 'error');
+        showToast('❌ Ошибка: ' + err.message, 'error');
       } finally {
         setTimeout(function() { btnPrint.disabled = false; }, 3000);
       }
@@ -411,21 +475,10 @@
       return { width: width, height: height, data: imageData.data };
     }
 
-    async function setPrintSpeed(speed) {
-      var cmd = new Uint8Array([
-        0x10, 0xff, 0xff, 0x03, 0x03, 0x0a, 0x00, 0x00, 0x00, 0xa0,
-        speed & 0xff, 0x00, 0x00, 0x00
-      ]);
-      log('PRINT', 'Установка скорости: ' + speed);
-      await sendCommand(cmd);
-    }
-
     async function sendBitmapData(bitmap) {
       var bytesPerRow = Math.ceil(bitmap.width / 8);
-      var rowCommandSize = 10;
-      var totalCommandSize = rowCommandSize + bytesPerRow;
 
-      log('PRINT', 'Отправка bitmap: ' + bitmap.width + 'x' + bitmap.height + ', ' + bytesPerRow + ' байт/строка');
+      addLog('Отправка bitmap...');
 
       for (var y = 0; y < bitmap.height; y++) {
         var rowBytes = new Uint8Array(bytesPerRow);
@@ -440,26 +493,26 @@
           }
         }
 
-        var cmd = new Uint8Array(totalCommandSize);
+        var cmd = new Uint8Array(10 + bytesPerRow);
         cmd[0] = 0x10;
         cmd[1] = 0xff;
         cmd[2] = 0xff;
         cmd[3] = 0x03;
         cmd[4] = 0x03;
         cmd[5] = 0x0e;
-        cmd[6] = (totalCommandSize - 8) & 0xff;
-        cmd[7] = ((totalCommandSize - 8) >> 8) & 0xff;
+        cmd[6] = bytesPerRow & 0xff;
+        cmd[7] = (bytesPerRow >> 8) & 0xff;
         cmd[8] = 0x00;
         cmd[9] = 0xa1;
 
         for (var b = 0; b < bytesPerRow; b++) {
-          cmd[rowCommandSize + b] = rowBytes[b];
+          cmd[10 + b] = rowBytes[b];
         }
 
         await sendCommand(cmd);
       }
 
-      log('PRINT', 'Bitmap отправлен');
+      addLog('Bitmap отправлен', 'success');
     }
 
     async function feedPaper(dots) {
@@ -467,7 +520,7 @@
         0x10, 0xff, 0xff, 0x03, 0x03, 0x0a, 0x00, 0x00, 0x00, 0xa0,
         0x00, 0x00, 0x00, 0x00
       ]);
-      log('PRINT', 'Подача бумаги: ' + dots + ' точек');
+      addLog('Подача бумаги');
       await sendCommand(cmd);
     }
 
@@ -475,11 +528,11 @@
       return new Promise(function(resolve) { setTimeout(resolve, ms); });
     }
 
-    log('INIT', 'Приложение загружено');
-    log('INIT', 'Web Bluetooth: ' + (navigator.bluetooth ? 'поддерживается' : 'НЕ поддерживается'));
+    addLog('Приложение загружено');
+    addLog('Web Bluetooth: ' + (navigator.bluetooth ? 'ДА' : 'НЕТ'));
 
     if (!navigator.bluetooth) {
-      showToast('Web Bluetooth не поддерживается в этом браузере', 'error', 5000);
+      showToast('Web Bluetooth не поддерживается', 'error', 5000);
       btnScan.disabled = true;
     }
   </script>
