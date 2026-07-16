@@ -6,95 +6,59 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Cat Printer Test</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a; color: #fff; min-height: 100vh;
-      display: flex; justify-content: center; padding: 20px;
-    }
-    .app { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; padding-top: 20px; }
-    .header { text-align: center; font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 2px; }
-    .status-bar {
-      display: flex; align-items: center; gap: 12px; padding: 14px 18px;
-      background: #141414; border-radius: 12px; border: 1px solid #222;
-    }
-    .status-dot {
-      width: 12px; height: 12px; border-radius: 50%;
-      background: #ff3b30; flex-shrink: 0; transition: background 0.3s;
-    }
-    .status-dot.connected { background: #34c759; box-shadow: 0 0 8px rgba(52,199,89,0.5); }
-    .status-text { font-size: 15px; font-weight: 500; }
-    .printer-name { margin-left: auto; font-size: 13px; color: #666; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .btn {
-      width: 100%; padding: 16px; border: none; border-radius: 12px;
-      font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .btn:active { transform: scale(0.97); }
-    .btn-primary { background: #2563eb; color: #fff; }
-    .btn-print { background: #16a34a; color: #fff; }
-    .btn-disconnect { background: #991b1b; color: #fff; font-size: 13px; padding: 10px; }
-    .btn-danger { background: #dc2626; color: #fff; font-size: 13px; padding: 10px; }
-    .btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
-    .spinner {
-      display: inline-block; width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
-      border-radius: 50%; animation: spin 0.6s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .section-label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
-    .input-group { display: flex; flex-direction: column; gap: 6px; }
-    .input-group label { font-size: 13px; color: #888; }
-    .input-group input, .input-group textarea {
-      width: 100%; padding: 12px 14px; background: #141414; border: 1px solid #333;
-      border-radius: 10px; color: #fff; font-size: 15px; font-family: inherit; outline: none;
-    }
-    .input-group input:focus, .input-group textarea:focus { border-color: #2563eb; }
-    .input-group textarea { min-height: 50px; resize: vertical; }
-    .items-list { display: flex; flex-direction: column; gap: 6px; }
-    .item-row { display: flex; gap: 6px; align-items: center; }
-    .item-row input { padding: 10px; background: #141414; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
-    .item-row input:focus { border-color: #2563eb; }
-    .item-row input[type="number"] { width: 50px; text-align: center; }
-    .item-row input[type="text"] { flex: 1; }
-    .item-remove { background: none; border: none; color: #666; font-size: 18px; cursor: pointer; padding: 4px; }
-    .item-remove:hover { color: #f87171; }
-    .add-item-btn {
-      background: none; border: 1px dashed #444; border-radius: 8px;
-      color: #666; padding: 8px; cursor: pointer; font-size: 14px; text-align: center;
-    }
-    .add-item-btn:hover { border-color: #2563eb; color: #2563eb; }
-    .log-box {
-      background: #111; border: 1px solid #222; border-radius: 8px;
-      padding: 10px; max-height: 250px; overflow-y: auto;
-      font-family: monospace; font-size: 11px; color: #888; line-height: 1.5;
-    }
-    .log-entry { white-space: pre-wrap; word-break: break-all; }
-    .log-entry.error { color: #f87171; }
-    .log-entry.success { color: #4ade80; }
-    .log-entry.warn { color: #fbbf24; }
-    .toast {
-      position: fixed; top: 20px; left: 50%;
-      transform: translateX(-50%) translateY(-100px);
-      padding: 14px 24px; border-radius: 10px; font-size: 15px; font-weight: 500;
-      z-index: 1000; transition: transform 0.3s ease; max-width: 90vw; text-align: center;
-    }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-    .toast-info { background: #1e40af; color: #fff; }
-    .toast-success { background: #166534; color: #fff; }
-    .toast-error { background: #991b1b; color: #fff; }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content:center;padding:20px}
+    .app{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;padding-top:20px}
+    .header{text-align:center;font-size:14px;color:#888;text-transform:uppercase;letter-spacing:2px}
+    .status-bar{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#141414;border-radius:12px;border:1px solid #222}
+    .status-dot{width:12px;height:12px;border-radius:50%;background:#ff3b30;flex-shrink:0;transition:background .3s}
+    .status-dot.connected{background:#34c759;box-shadow:0 0 8px rgba(52,199,89,.5)}
+    .status-text{font-size:15px;font-weight:500}
+    .printer-name{margin-left:auto;font-size:13px;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .btn{width:100%;padding:16px;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn:active{transform:scale(.97)}
+    .btn-primary{background:#2563eb;color:#fff}
+    .btn-print{background:#16a34a;color:#fff}
+    .btn-disconnect{background:#991b1b;color:#fff;font-size:13px;padding:10px}
+    .btn-danger{background:#dc2626;color:#fff;font-size:13px;padding:10px}
+    .btn:disabled{background:#333;color:#666;cursor:not-allowed;transform:none}
+    .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .section-label{font-size:12px;color:#555;text-transform:uppercase;letter-spacing:1px}
+    .input-group{display:flex;flex-direction:column;gap:6px}
+    .input-group label{font-size:13px;color:#888}
+    .input-group input,.input-group textarea{width:100%;padding:12px 14px;background:#141414;border:1px solid #333;border-radius:10px;color:#fff;font-size:15px;font-family:inherit;outline:none}
+    .input-group input:focus,.input-group textarea:focus{border-color:#2563eb}
+    .input-group textarea{min-height:50px;resize:vertical}
+    .items-list{display:flex;flex-direction:column;gap:6px}
+    .item-row{display:flex;gap:6px;align-items:center}
+    .item-row input{padding:10px;background:#141414;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;outline:none}
+    .item-row input[type="number"]{width:50px;text-align:center}
+    .item-row input[type="text"]{flex:1}
+    .item-remove{background:none;border:none;color:#666;font-size:18px;cursor:pointer;padding:4px}
+    .item-remove:hover{color:#f87171}
+    .add-item-btn{background:none;border:1px dashed #444;border-radius:8px;color:#666;padding:8px;cursor:pointer;font-size:14px;text-align:center}
+    .add-item-btn:hover{border-color:#2563eb;color:#2563eb}
+    .log-box{background:#111;border:1px solid #222;border-radius:8px;padding:10px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;color:#888;line-height:1.5}
+    .log-entry{white-space:pre-wrap;word-break:break-all}
+    .log-entry.error{color:#f87171}
+    .log-entry.success{color:#4ade80}
+    .log-entry.warn{color:#fbbf24}
+    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);padding:14px 24px;border-radius:10px;font-size:15px;font-weight:500;z-index:1000;transition:transform .3s ease;max-width:90vw;text-align:center}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast-info{background:#1e40af;color:#fff}
+    .toast-success{background:#166534;color:#fff}
+    .toast-error{background:#991b1b;color:#fff}
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="header">Cat Printer Test</div>
-
+    <div class="header">Cat Printer Test v7</div>
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
       <span class="status-text" id="statusText">Не подключён</span>
       <span class="printer-name" id="printerName"></span>
     </div>
-
     <button class="btn btn-primary" id="btnScan" onclick="startScan()">Найти принтер</button>
     <button class="btn btn-disconnect" id="btnDisconnect" onclick="disconnectPrinter()" style="display:none">Отключиться</button>
 
@@ -103,7 +67,6 @@
       <label>Название</label>
       <input type="text" id="shopName" value="ШАУРМА №1">
     </div>
-
     <div class="section-label">Позиции</div>
     <div class="items-list" id="itemsList">
       <div class="item-row">
@@ -120,15 +83,13 @@
       </div>
     </div>
     <button class="add-item-btn" onclick="addItem()">+ Добавить</button>
-
     <div class="input-group">
       <label>Свой текст</label>
       <textarea id="customText" placeholder="Дополнительный текст..."></textarea>
     </div>
 
     <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>Напечатать чек</button>
-    <button class="btn btn-danger" id="btnLF" onclick="printLF()" disabled style="font-size:13px;padding:10px">Тест: \n x 10</button>
-    <button class="btn btn-danger" id="btnHello" onclick="printHello()" disabled style="font-size:13px;padding:10px">Тест: HELLO</button>
+    <button class="btn btn-danger" id="btnTest" onclick="runTest()" disabled style="font-size:13px;padding:10px">Тест: все characteristics</button>
 
     <div class="section-label">Лог</div>
     <div class="log-box" id="logBox"></div>
@@ -136,256 +97,174 @@
   <div class="toast toast-info" id="toast"></div>
 
   <script>
-    var ISSC_SVC = '49535343-fe7d-4ae5-8fa9-9fafd205e455';
-    var ISSC_TX = '49535343-8841-43f4-a8d4-ecbe34729bb3';
-    var ISSC_RX = '49535343-1e4d-4bd9-ba61-23c647249616';
+    var ISSC_SVC='49535343-fe7d-4ae5-8fa9-9fafd205e455';
+    var ISSC_RX='49535343-1e4d-4bd9-ba61-23c647249616';
+    var ISSC_C1='49535343-6daa-4d02-abf6-19569aca69fe';
+    var ISSC_C2='49535343-8841-43f4-a8d4-ecbe34729bb3';
+    var ISSC_C3='49535343-aca3-481c-91ec-d85e28a60318';
 
-    var device = null, txChar = null;
+    var device=null,allChars=[];
+    var toastEl=document.getElementById('toast'),logBox=document.getElementById('logBox');
 
-    var btnScan = document.getElementById('btnScan');
-    var btnPrint = document.getElementById('btnPrint');
-    var btnLF = document.getElementById('btnLF');
-    var btnDisconnect = document.getElementById('btnDisconnect');
-    var toastEl = document.getElementById('toast');
-    var logBox = document.getElementById('logBox');
+    function showToast(m,t,d){t=t||'info';d=d||3000;toastEl.textContent=m;toastEl.className='toast toast-'+t+' show';setTimeout(function(){toastEl.classList.remove('show')},d)}
+    function log(m,c){var ts=new Date().toLocaleTimeString();var div=document.createElement('div');div.className='log-entry'+(c?' '+c:'');div.textContent='['+ts+'] '+m;logBox.appendChild(div);logBox.scrollTop=logBox.scrollHeight}
+    function setStatus(ok,name){document.getElementById('statusDot').className=ok?'status-dot connected':'status-dot';document.getElementById('statusText').textContent=ok?'Подключён':'Не подключён';document.getElementById('printerName').textContent=name||'';document.getElementById('btnPrint').disabled=!ok;document.getElementById('btnTest').disabled=!ok;document.getElementById('btnDisconnect').style.display=ok?'block':'none'}
+    function disconnectPrinter(){if(device&&device.gatt.connected)device.gatt.disconnect();device=null;allChars=[];setStatus(false);log('Отключено','error')}
+    function addItem(){var l=document.getElementById('itemsList');var r=document.createElement('div');r.className='item-row';r.innerHTML='<input type="text" placeholder="Название"><input type="number" value="1" min="1"><input type="number" value="0.00" min="0" step="0.01"><button class="item-remove" onclick="removeItem(this)">&times;</button>';l.appendChild(r)}
+    function removeItem(b){var l=document.getElementById('itemsList');if(l.children.length>1)b.parentElement.remove()}
+    function getItems(){var items=[];document.querySelectorAll('#itemsList .item-row').forEach(function(r){var i=r.querySelectorAll('input');var n=i[0].value.trim(),q=parseInt(i[1].value)||1,p=parseFloat(i[2].value)||0;if(n)items.push({name:n,qty:q,price:p})});return items}
+    function genText(){var shop=(document.getElementById('shopName').value||'МАГАЗИН').toUpperCase(),custom=document.getElementById('customText').value.trim(),items=getItems(),num=Math.floor(Math.random()*9000)+1000,now=new Date(),ds=now.toLocaleDateString('ru-RU'),ts=now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),total=0;items.forEach(function(it){total+=it.qty*it.price});var sep='================================';var t=sep+'\n\n  '+shop+'\n\n'+sep+'\n\n  ЗАКАЗ #'+num+'\n  '+ds+'  '+ts+'\n\n--------------------------------\n';items.forEach(function(it){t+='\n  '+it.name+'\n    '+it.qty+' x '+it.price.toFixed(2)+' = '+(it.qty*it.price).toFixed(2)+'\n'});t+='\n--------------------------------\n\n  ИТОГО:  '+total.toFixed(2)+' руб.\n\n'+sep+'\n';if(custom)t+='\n'+custom+'\n\n'+sep+'\n';t+='\n       Спасибо!\n\n\n\n';return t}
+    function crc8(d){var c=0;for(var i=0;i<d.length;i++){c^=d[i];for(var j=0;j<8;j++)c=(c&128)?((c<<1)^7)&255:(c<<1)&255}return c}
+    function catCmd(cmd,payload){var m=new Uint8Array(6+payload.length+2);m[0]=0x51;m[1]=0x78;m[2]=cmd;m[3]=0x00;m[4]=payload.length;m[5]=0x00;m.set(payload,6);m[6+payload.length]=crc8(payload);m[6+payload.length+1]=0xFF;return m}
+    function revBits(b){var r=0;for(var i=0;i<8;i++)r|=(((b>>i)&1)<<(7-i));return r}
 
-    function showToast(m, t, d) {
-      t = t || 'info'; d = d || 3000;
-      toastEl.textContent = m;
-      toastEl.className = 'toast toast-' + t + ' show';
-      setTimeout(function() { toastEl.classList.remove('show'); }, d);
-    }
-
-    function log(m, c) {
-      var ts = new Date().toLocaleTimeString();
-      var div = document.createElement('div');
-      div.className = 'log-entry' + (c ? ' ' + c : '');
-      div.textContent = '[' + ts + '] ' + m;
-      logBox.appendChild(div);
-      logBox.scrollTop = logBox.scrollHeight;
-    }
-
-    function setStatus(ok, name) {
-      document.getElementById('statusDot').className = ok ? 'status-dot connected' : 'status-dot';
-      document.getElementById('statusText').textContent = ok ? 'Подключён' : 'Не подключён';
-      document.getElementById('printerName').textContent = name || '';
-      btnPrint.disabled = !ok;
-      btnLF.disabled = !ok;
-      btnHello.disabled = !ok;
-      btnDisconnect.style.display = ok ? 'block' : 'none';
-    }
-
-    function disconnectPrinter() {
-      if (device && device.gatt.connected) device.gatt.disconnect();
-      device = null; txChar = null;
-      setStatus(false);
-      log('Отключено', 'error');
-    }
-
-    function addItem() {
-      var list = document.getElementById('itemsList');
-      var row = document.createElement('div');
-      row.className = 'item-row';
-      row.innerHTML = '<input type="text" placeholder="Название"><input type="number" value="1" min="1"><input type="number" value="0.00" min="0" step="0.01"><button class="item-remove" onclick="removeItem(this)">&times;</button>';
-      list.appendChild(row);
-    }
-
-    function removeItem(btn) {
-      var list = document.getElementById('itemsList');
-      if (list.children.length > 1) btn.parentElement.remove();
-    }
-
-    function getItems() {
-      var items = [];
-      document.querySelectorAll('#itemsList .item-row').forEach(function(row) {
-        var inp = row.querySelectorAll('input');
-        var n = inp[0].value.trim();
-        var q = parseInt(inp[1].value) || 1;
-        var p = parseFloat(inp[2].value) || 0;
-        if (n) items.push({ name: n, qty: q, price: p });
-      });
-      return items;
-    }
-
-    function genText() {
-      var shop = (document.getElementById('shopName').value || 'МАГАЗИН').toUpperCase();
-      var custom = document.getElementById('customText').value.trim();
-      var items = getItems();
-      var num = Math.floor(Math.random() * 9000) + 1000;
-      var now = new Date();
-      var ds = now.toLocaleDateString('ru-RU');
-      var ts = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-      var total = 0;
-      items.forEach(function(it) { total += it.qty * it.price; });
-      var sep = '================================';
-      var t = sep + '\n\n  ' + shop + '\n\n' + sep + '\n\n';
-      t += '  ЗАКАЗ #' + num + '\n  ' + ds + '  ' + ts + '\n\n';
-      t += '--------------------------------\n';
-      items.forEach(function(it) {
-        t += '\n  ' + it.name + '\n    ' + it.qty + ' x ' + it.price.toFixed(2) + ' = ' + (it.qty * it.price).toFixed(2) + '\n';
-      });
-      t += '\n--------------------------------\n\n  ИТОГО:  ' + total.toFixed(2) + ' руб.\n\n' + sep + '\n';
-      if (custom) t += '\n' + custom + '\n\n' + sep + '\n';
-      t += '\n       Спасибо!\n\n\n\n';
-      return t;
-    }
-
-    async function startScan() {
-      log('Сканирование...', 'success');
-      btnScan.disabled = true;
-      btnScan.innerHTML = '<span class="spinner"></span> Поиск...';
-      try {
-        var d = await navigator.bluetooth.requestDevice({
-          filters: [{ namePrefix: 'YHK' }],
-          optionalServices: [ISSC_SVC]
-        });
-        log('Найдено: ' + d.name, 'success');
+    async function startScan(){
+      log('Сканирование...','success');
+      document.getElementById('btnScan').disabled=true;
+      document.getElementById('btnScan').innerHTML='<span class="spinner"></span> Поиск...';
+      try{
+        var d=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'YHK'}],optionalServices:[ISSC_SVC,'0000ae00-0000-1000-8000-00805f9b34fb']});
+        log('Найдено: '+d.name,'success');
         await doConnect(d);
-      } catch(e) {
-        log('Ошибка: ' + e.message, 'error');
-        showToast(e.message, 'error');
-      } finally {
-        btnScan.disabled = false;
-        btnScan.innerHTML = 'Найти принтер';
-      }
+      }catch(e){log('Ошибка: '+e.message,'error');showToast(e.message,'error')}
+      finally{document.getElementById('btnScan').disabled=false;document.getElementById('btnScan').innerHTML='Найти принтер'}
     }
 
-    async function doConnect(d) {
-      log('Подключение...');
-      showToast('Подключение...', 'info');
-      try {
-        var gatt = await d.gatt.connect();
-        log('GATT OK');
-
-        var svc = await gatt.getPrimaryService(ISSC_SVC);
-        log('ISSC OK', 'success');
-
-        txChar = await svc.getCharacteristic(ISSC_TX);
-        log('TX: ' + txChar.uuid, 'success');
-
-        try {
-          var rx = await svc.getCharacteristic(ISSC_RX);
-          await rx.startNotifications();
-          rx.addEventListener('characteristicvaluechanged', function(e) {
-            var v = new Uint8Array(e.target.value.buffer);
-            var hex = Array.from(v).map(function(b) { return b.toString(16).padStart(2, '0'); }).join(' ');
-            log('RX: ' + hex);
-          });
-          log('Notify OK', 'success');
-        } catch(e) {
-          log('Notify: ' + e.message, 'warn');
+    async function doConnect(d){
+      log('Подключение...');showToast('Подключение...','info');
+      try{
+        var gatt=await d.gatt.connect();log('GATT OK');
+        var svcs=await gatt.getPrimaryServices();log('Сервисов: '+svcs.length);
+        allChars=[];
+        for(var i=0;i<svcs.length;i++){
+          var s=svcs[i];log('  SVC: '+s.uuid.substring(0,12),'warn');
+          var chars=await s.getCharacteristics();
+          for(var j=0;j<chars.length;j++){
+            var c=chars[j],p=[];
+            if(c.properties.read)p.push('R');
+            if(c.properties.write)p.push('W');
+            if(c.properties.writeWithoutResponse)p.push('Wn');
+            if(c.properties.notify)p.push('N');
+            log('    CHR: '+c.uuid.substring(0,12)+' ['+p.join(' ')+']','warn');
+            allChars.push(c);
+          }
         }
+        for(var i=0;i<allChars.length;i++){
+          if(allChars[i].uuid===ISSC_RX){
+            try{await allChars[i].startNotifications();allChars[i].addEventListener('characteristicvaluechanged',function(e){var v=new Uint8Array(e.target.value.buffer);log('RX: '+Array.from(v).map(function(b){return b.toString(16).padStart(2,'0')}).join(' '))});log('Notify OK','success')}catch(e){}
+          }
+        }
+        d.addEventListener('gattserverdisconnected',function(){log('Отключено','error');device=null;allChars=[];setStatus(false)});
+        device=d;setStatus(true,d.name);showToast('Подключён!','success');
+      }catch(e){log('Ошибка: '+e.message,'error');showToast(e.message,'error');setStatus(false)}
+    }
 
-        d.addEventListener('gattserverdisconnected', function() {
-          log('Отключено', 'error');
-          device = null; txChar = null; setStatus(false);
-        });
+    async function runTest(){
+      if(!device||!device.gatt.connected){showToast('Не подключён','error');return}
+      log('=== ТЕСТ ВСЕХ CHARACTERISTICS ===','success');
+      document.getElementById('btnTest').disabled=true;
 
-        device = d;
-        setStatus(true, d.name);
-        showToast('Подключён!', 'success');
-      } catch(e) {
-        log('Ошибка: ' + e.message, 'error');
-        showToast(e.message, 'error');
-        setStatus(false);
+      var wChars=allChars.filter(function(c){return c.properties.write||c.properties.writeWithoutResponse});
+      log('Write chars: '+wChars.length);
+
+      var testMsg=new TextEncoder().encode('HELLO\n');
+      var initCmd=new Uint8Array([0x1B,0x40]);
+      var catInit=new Uint8Array([0x1B,0x40]);
+      var catData=catCmd(0xA2,new Uint8Array(48));
+
+      for(var ci=0;ci<wChars.length;ci++){
+        var ch=wChars[ci];
+        var shortId=ch.uuid.substring(9,17);
+        log('--- Char: ...'+shortId+' ---','warn');
+
+        try{
+          log('  1) writeValue init');
+          await ch.writeValue(initCmd);
+          await sleep(50);
+          log('  2) writeValue text');
+          await ch.writeValue(testMsg);
+          await sleep(50);
+          log('  3) writeValue lf');
+          await ch.writeValue(new Uint8Array([0x0A,0x0A,0x0A]));
+          log('  writeValue OK','success');
+        }catch(e){log('  writeValue ERR: '+e.message,'error')}
+
+        await sleep(3000);
+
+        try{
+          log('  4) writeNoRsp init');
+          await ch.writeValueWithoutResponse(initCmd);
+          await sleep(50);
+          log('  5) writeNoRsp text');
+          await ch.writeValueWithoutResponse(testMsg);
+          await sleep(50);
+          log('  6) writeNoRsp lf');
+          await ch.writeValueWithoutResponse(new Uint8Array([0x0A,0x0A,0x0A]));
+          log('  writeNoRsp OK','success');
+        }catch(e){log('  writeNoRsp ERR: '+e.message,'error')}
+
+        await sleep(3000);
       }
+
+      log('=== КОНЕЦ ТЕСТА ===','success');
+      log('Проверьте: что напечатал принтер?');
+      showToast('Тест завершён!','success');
+      setTimeout(function(){document.getElementById('btnTest').disabled=false},2000);
     }
 
-    async function send(data) {
-      if (!txChar) throw new Error('Не подключён');
-      await txChar.writeValueWithoutResponse(data);
-      log('TX (' + data.length + '): ' + Array.from(data.slice(0, 20)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join(' ') + (data.length > 20 ? '...' : ''));
+    async function printReceipt(){
+      if(!device||!device.gatt.connected){showToast('Не подключён','error');return}
+      log('=== ПЕЧАТЬ ===','success');
+      document.getElementById('btnPrint').disabled=true;
+      showToast('⏳ Печатается...','info',5000);
+      try{
+        var text=genText();
+        log('Текст: '+text.length+' символов');
+        log(text.substring(0,150)+'...');
+
+        var cv=document.createElement('canvas');cv.width=384;
+        var ls=text.split('\n'),lh=24;cv.height=ls.length*lh;
+        var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,384,cv.height);
+        cx.fillStyle='#000';cx.font='18px monospace';cx.textBaseline='top';
+        ls.forEach(function(l,i){cx.fillText(l,8,i*lh+4)});
+        var img=cx.getImageData(0,0,384,cv.height);
+        var wb=Math.ceil(384/8),h=cv.height;
+
+        var cmds=[];
+        cmds.push(new Uint8Array([0x1B,0x40]));
+        for(var y=0;y<h;y++){
+          var row=new Uint8Array(wb);
+          for(var x=0;x<384;x++){var idx=(y*384+x)*4;if(img.data[idx]<128)row[Math.floor(x/8)]|=(1<<(7-(x%8)))}
+          for(var b=0;b<wb;b++)row[b]=revBits(row[b]);
+          cmds.push(catCmd(0xA2,row));
+        }
+        cmds.push(catCmd(0xA1,new Uint8Array([0x80,0x00])));
+        cmds.push(new Uint8Array([0x0A,0x0A,0x0A,0x0A]));
+
+        var wChars=allChars.filter(function(c){return c.properties.writeWithoutResponse});
+        if(wChars.length===0)wChars=allChars.filter(function(c){return c.properties.write});
+
+        log('Берём первый write char для отправки');
+        var ch=wChars[0];
+        if(!ch){throw new Error('Нет write char')}
+
+        log('Команд: '+cmds.length);
+        for(var i=0;i<cmds.length;i++){
+          try{await ch.writeValueWithoutResponse(cmds[i])}
+          catch(e){await ch.writeValue(cmds[i])}
+          if(i%100===0&&i>0)log('  '+i+'/'+cmds.length);
+        }
+        await sleep(2000);
+        log('Готово!','success');showToast('✅ Отправлено!','success');
+      }catch(e){log('Ошибка: '+e.message,'error');showToast('❌ '+e.message,'error')}
+      finally{setTimeout(function(){document.getElementById('btnPrint').disabled=false},3000)}
     }
 
-    async function printLF() {
-      if (!device || !device.gatt.connected) { showToast('Не подключён', 'error'); return; }
-      log('=== ТЕСТ: \\n x 10 ===', 'success');
-      btnLF.disabled = true;
-      try {
-        var data = new Uint8Array([0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A]);
-        await send(data);
-        await new Promise(function(r) { setTimeout(r, 1000); });
-        log('OK!', 'success');
-        showToast('OK', 'success');
-      } catch(e) {
-        log('Ошибка: ' + e.message, 'error');
-      } finally {
-        setTimeout(function() { btnLF.disabled = false; }, 2000);
-      }
-    }
+    function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
-    async function printHello() {
-      if (!device || !device.gatt.connected) { showToast('Не подключён', 'error'); return; }
-      log('=== ТЕСТ: HELLO ===', 'success');
-      btnHello.disabled = true;
-      try {
-        var init = new Uint8Array([0x1B, 0x40]);
-        await send(init);
-        await new Promise(function(r) { setTimeout(r, 100); });
-
-        var enc = new TextEncoder();
-        var text = enc.encode('HELLO WORLD!\nTest 123\n');
-        await send(text);
-        await new Promise(function(r) { setTimeout(r, 100); });
-
-        var feed = new Uint8Array([0x1B, 0x64, 0x05]);
-        await send(feed);
-        await new Promise(function(r) { setTimeout(r, 100); });
-
-        var lf = new Uint8Array([0x0A, 0x0A, 0x0A]);
-        await send(lf);
-
-        await new Promise(function(r) { setTimeout(r, 1000); });
-        log('OK!', 'success');
-        showToast('OK', 'success');
-      } catch(e) {
-        log('Ошибка: ' + e.message, 'error');
-      } finally {
-        setTimeout(function() { btnHello.disabled = false; }, 2000);
-      }
-    }
-
-    async function printReceipt() {
-      if (!device || !device.gatt.connected) { showToast('Не подключён', 'error'); return; }
-      log('=== ПЕЧАТЬ ===', 'success');
-      btnPrint.disabled = true;
-      showToast('⏳ Печатается...', 'info', 5000);
-
-      try {
-        var text = genText();
-        log('Текст (' + text.length + ' символов)');
-        log(text.substring(0, 200) + '...');
-
-        var init = new Uint8Array([0x1B, 0x40]);
-        await send(init);
-        await new Promise(function(r) { setTimeout(r, 100); });
-
-        var enc = new TextEncoder();
-        var textBytes = enc.encode(text);
-        await send(textBytes);
-        await new Promise(function(r) { setTimeout(r, 100); });
-
-        var feed = new Uint8Array([0x1B, 0x64, 0x0A]);
-        await send(feed);
-        await new Promise(function(r) { setTimeout(r, 100); });
-
-        var lf = new Uint8Array([0x0A, 0x0A, 0x0A]);
-        await send(lf);
-
-        await new Promise(function(r) { setTimeout(r, 2000); });
-        log('Готово!', 'success');
-        showToast('✅ Отправлено!', 'success');
-      } catch(e) {
-        log('Ошибка: ' + e.message, 'error');
-        showToast('❌ ' + e.message, 'error');
-      } finally {
-        setTimeout(function() { btnPrint.disabled = false; }, 3000);
-      }
-    }
-
-    log('v6 загружено (ESC/POS)');
-    log('Web Bluetooth: ' + (navigator.bluetooth ? 'ДА' : 'НЕТ'));
-    if (!navigator.bluetooth) { showToast('Web Bluetooth не поддерживается', 'error', 5000); btnScan.disabled = true; }
+    log('v7 загружено');
+    log('Web Bluetooth: '+(navigator.bluetooth?'ДА':'НЕТ'));
+    if(!navigator.bluetooth){showToast('Web Bluetooth не поддерживается','error',5000);document.getElementById('btnScan').disabled=true}
   </script>
 </body>
 </html>
