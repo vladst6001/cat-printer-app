@@ -492,6 +492,11 @@
         var height = receiptCanvas.height;
 
         var allPayloads = [];
+
+        allPayloads.push(new Uint8Array([0x1D, 0x49, 0xF0, 0x19]));
+
+        allPayloads.push(new Uint8Array([0x1B, 0x40]));
+
         for (var y = 0; y < height; y++) {
           var rowData = new Uint8Array(widthBytes);
           for (var x = 0; x < PRINTER_WIDTH; x++) {
@@ -503,35 +508,29 @@
           for (var b = 0; b < widthBytes; b++) rowData[b] = revBits(rowData[b]);
           allPayloads.push(makeCatCommand(0xA2, rowData));
         }
+
         allPayloads.push(makeCatCommand(0xA1, new Uint8Array([0x80, 0x00])));
+        allPayloads.push(new Uint8Array([0x0A, 0x0A, 0x0A, 0x0A]));
 
         var totalBytes = 0;
         allPayloads.forEach(function(p) { totalBytes += p.length; });
-        addLog('Cat Printer protocol: ' + allPayloads.length + ' команд, ' + totalBytes + ' байт');
+        addLog('Команд: ' + allPayloads.length + ', байт: ' + totalBytes);
 
-        var charsToTry = allChars.filter(function(c) {
-          return c.properties.write || c.properties.writeWithoutResponse;
-        });
+        var writeFn = null;
+        try {
+          await txChar.writeValueWithoutResponse(new Uint8Array(1));
+          writeFn = function(d) { return txChar.writeValueWithoutResponse(d); };
+          addLog('writeWithoutResponse OK');
+        } catch(e) {
+          writeFn = function(d) { return txChar.writeValue(d); };
+          addLog('writeValue (with response)');
+        }
 
-        addLog('Пробуем ' + charsToTry.length + ' characteristics...');
-
-        for (var ci = 0; ci < charsToTry.length; ci++) {
-          var targetChar = charsToTry[ci];
-          addLog('--- Пробуем: ' + targetChar.uuid.substring(0, 8) + ' ---', 'warn');
-
-          try {
-            for (var pi = 0; pi < allPayloads.length; pi++) {
-              try {
-                await targetChar.writeValueWithoutResponse(allPayloads[pi]);
-              } catch(e2) {
-                await targetChar.writeValue(allPayloads[pi]);
-              }
-              if (pi % 100 === 0 && pi > 0) await sleep(10);
-            }
-            addLog('OK через ' + targetChar.uuid.substring(0, 8), 'success');
-            break;
-          } catch(e) {
-            addLog('Ошибка: ' + e.message, 'error');
+        for (var pi = 0; pi < allPayloads.length; pi++) {
+          await writeFn(allPayloads[pi]);
+          if (pi % 50 === 0 && pi > 0) {
+            addLog('  ' + pi + '/' + allPayloads.length);
+            await sleep(5);
           }
         }
 
