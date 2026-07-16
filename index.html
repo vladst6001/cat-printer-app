@@ -87,7 +87,7 @@
 </head>
 <body>
   <div class="app">
-    <div class="header">Cat Printer Test v5</div>
+    <div class="header">Cat Printer Test</div>
 
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
@@ -127,6 +127,7 @@
     </div>
 
     <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>Напечатать чек</button>
+    <button class="btn btn-danger" id="btnLF" onclick="printLF()" disabled style="font-size:13px;padding:10px">Тест: \n x 10</button>
 
     <div class="section-label">Лог</div>
     <div class="log-box" id="logBox"></div>
@@ -134,21 +135,15 @@
   <div class="toast toast-info" id="toast"></div>
 
   <script>
-    var CAT_SVC = '0000ae00-0000-1000-8000-00805f9b34fb';
-    var CAT_TX = '0000ae01-0000-1000-8000-00805f9b34fb';
-    var CAT_RX = '0000ae02-0000-1000-8000-00805f9b34fb';
     var ISSC_SVC = '49535343-fe7d-4ae5-8fa9-9fafd205e455';
-    var ISSC_TX_WNR = '49535343-8841-43f4-a8d4-ecbe34729bb3';
-    var ISSC_TX_W = '49535343-6daa-4d02-abf6-19569aca69fe';
+    var ISSC_TX = '49535343-8841-43f4-a8d4-ecbe34729bb3';
     var ISSC_RX = '49535343-1e4d-4bd9-ba61-23c647249616';
-    var ISSC_WRN = '49535343-aca3-481c-91ec-d85e28a60318';
-    var W = 384;
-    var CHUNK = 182;
 
     var device = null, txChar = null;
 
     var btnScan = document.getElementById('btnScan');
     var btnPrint = document.getElementById('btnPrint');
+    var btnLF = document.getElementById('btnLF');
     var btnDisconnect = document.getElementById('btnDisconnect');
     var toastEl = document.getElementById('toast');
     var logBox = document.getElementById('logBox');
@@ -174,6 +169,7 @@
       document.getElementById('statusText').textContent = ok ? 'Подключён' : 'Не подключён';
       document.getElementById('printerName').textContent = name || '';
       btnPrint.disabled = !ok;
+      btnLF.disabled = !ok;
       btnDisconnect.style.display = ok ? 'block' : 'none';
     }
 
@@ -232,31 +228,6 @@
       return t;
     }
 
-    function crc8(d) {
-      var c = 0;
-      for (var i = 0; i < d.length; i++) {
-        c ^= d[i];
-        for (var j = 0; j < 8; j++) c = (c & 128) ? ((c << 1) ^ 7) & 255 : (c << 1) & 255;
-      }
-      return c;
-    }
-
-    function catCmd(cmd, payload) {
-      var m = new Uint8Array(6 + payload.length + 2);
-      m[0] = 0x51; m[1] = 0x78; m[2] = cmd; m[3] = 0x00;
-      m[4] = payload.length; m[5] = 0x00;
-      m.set(payload, 6);
-      m[6 + payload.length] = crc8(payload);
-      m[6 + payload.length + 1] = 0xFF;
-      return m;
-    }
-
-    function revBits(b) {
-      var r = 0;
-      for (var i = 0; i < 8; i++) r |= (((b >> i) & 1) << (7 - i));
-      return r;
-    }
-
     async function startScan() {
       log('Сканирование...', 'success');
       btnScan.disabled = true;
@@ -264,7 +235,7 @@
       try {
         var d = await navigator.bluetooth.requestDevice({
           filters: [{ namePrefix: 'YHK' }],
-          optionalServices: [CAT_SVC, ISSC_SVC]
+          optionalServices: [ISSC_SVC]
         });
         log('Найдено: ' + d.name, 'success');
         await doConnect(d);
@@ -284,42 +255,14 @@
         var gatt = await d.gatt.connect();
         log('GATT OK');
 
-        var svcs = await gatt.getPrimaryServices();
-        log('Сервисов: ' + svcs.length);
+        var svc = await gatt.getPrimaryService(ISSC_SVC);
+        log('ISSC OK', 'success');
 
-        txChar = null;
-
-        for (var i = 0; i < svcs.length; i++) {
-          var s = svcs[i];
-          log('  SVC: ' + s.uuid.substring(0, 8) + '...', 'warn');
-          var chars = await s.getCharacteristics();
-          for (var j = 0; j < chars.length; j++) {
-            var c = chars[j];
-            var p = [];
-            if (c.properties.write) p.push('W');
-            if (c.properties.writeWithoutResponse) p.push('Wn');
-            if (c.properties.notify) p.push('N');
-            log('    CHR: ' + c.uuid.substring(0, 12) + ' [' + p.join(' ') + ']', 'warn');
-
-            if (c.uuid === CAT_TX) {
-              txChar = c;
-              log('  >>> CAT PRINTER TX FOUND!', 'success');
-            }
-          }
-        }
-
-        if (!txChar) {
-          log('Cat TX не найден, пробуем ISSC...', 'warn');
-          txChar = await gatt.getPrimaryService(ISSC_SVC).then(function(s) {
-            return s.getCharacteristic(ISSC_TX_WNR);
-          });
-          log('ISSC TX: ' + txChar.uuid);
-        }
+        txChar = await svc.getCharacteristic(ISSC_TX);
+        log('TX: ' + txChar.uuid, 'success');
 
         try {
-          var rx = await gatt.getPrimaryService(ISSC_SVC).then(function(s) {
-            return s.getCharacteristic(ISSC_RX);
-          });
+          var rx = await svc.getCharacteristic(ISSC_RX);
           await rx.startNotifications();
           rx.addEventListener('characteristicvaluechanged', function(e) {
             var v = new Uint8Array(e.target.value.buffer);
@@ -346,15 +289,26 @@
       }
     }
 
-    async function sendData(data) {
-      var off = 0;
-      while (off < data.length) {
-        var end = Math.min(off + CHUNK, data.length);
-        var chunk = data.slice(off, end);
-        try { await txChar.writeValueWithoutResponse(chunk); }
-        catch(e) { await txChar.writeValue(chunk); }
-        off = end;
-        if (off < data.length) await new Promise(function(r) { setTimeout(r, 40); });
+    async function send(data) {
+      if (!txChar) throw new Error('Не подключён');
+      await txChar.writeValue(data);
+      log('TX (' + data.length + '): ' + Array.from(data.slice(0, 20)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join(' ') + (data.length > 20 ? '...' : ''));
+    }
+
+    async function printLF() {
+      if (!device || !device.gatt.connected) { showToast('Не подключён', 'error'); return; }
+      log('=== ТЕСТ: \\n x 10 ===', 'success');
+      btnLF.disabled = true;
+      try {
+        var data = new Uint8Array([0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A]);
+        await send(data);
+        await new Promise(function(r) { setTimeout(r, 1000); });
+        log('OK!', 'success');
+        showToast('OK', 'success');
+      } catch(e) {
+        log('Ошибка: ' + e.message, 'error');
+      } finally {
+        setTimeout(function() { btnLF.disabled = false; }, 2000);
       }
     }
 
@@ -366,42 +320,24 @@
 
       try {
         var text = genText();
-        var ls = text.split('\n');
-        var lineH = 24;
-        var h = ls.length * lineH;
+        log('Текст (' + text.length + ' символов)');
+        log(text.substring(0, 200) + '...');
 
-        var cv = document.createElement('canvas');
-        cv.width = W; cv.height = h;
-        var cx = cv.getContext('2d');
-        cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, h);
-        cx.fillStyle = '#000'; cx.font = '18px monospace'; cx.textBaseline = 'top';
-        ls.forEach(function(l, i) { cx.fillText(l, 8, i * lineH + 4); });
+        var init = new Uint8Array([0x1B, 0x40]);
+        await send(init);
+        await new Promise(function(r) { setTimeout(r, 100); });
 
-        var img = cx.getImageData(0, 0, W, h);
-        var wb = Math.ceil(W / 8);
+        var enc = new TextEncoder();
+        var textBytes = enc.encode(text);
+        await send(textBytes);
+        await new Promise(function(r) { setTimeout(r, 100); });
 
-        var cmds = [];
+        var feed = new Uint8Array([0x1B, 0x64, 0x0A]);
+        await send(feed);
+        await new Promise(function(r) { setTimeout(r, 100); });
 
-        cmds.push(new Uint8Array([0x1B, 0x40]));
-
-        for (var y = 0; y < h; y++) {
-          var row = new Uint8Array(wb);
-          for (var x = 0; x < W; x++) {
-            var idx = (y * W + x) * 4;
-            if (img.data[idx] < 128) row[Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
-          }
-          for (var b = 0; b < wb; b++) row[b] = revBits(row[b]);
-          cmds.push(catCmd(0xA2, row));
-        }
-
-        cmds.push(catCmd(0xA1, new Uint8Array([0x80, 0x00])));
-        cmds.push(new Uint8Array([0x0A, 0x0A, 0x0A, 0x0A]));
-
-        log('Отправка: ' + cmds.length + ' команд');
-        for (var i = 0; i < cmds.length; i++) {
-          await sendData(cmds[i]);
-          if (i % 100 === 0 && i > 0) log('  ' + i + '/' + cmds.length);
-        }
+        var lf = new Uint8Array([0x0A, 0x0A, 0x0A]);
+        await send(lf);
 
         await new Promise(function(r) { setTimeout(r, 2000); });
         log('Готово!', 'success');
@@ -414,7 +350,7 @@
       }
     }
 
-    log('v5 загружено');
+    log('v6 загружено (ESC/POS)');
     log('Web Bluetooth: ' + (navigator.bluetooth ? 'ДА' : 'НЕТ'));
     if (!navigator.bluetooth) { showToast('Web Bluetooth не поддерживается', 'error', 5000); btnScan.disabled = true; }
   </script>
