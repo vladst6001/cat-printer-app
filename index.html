@@ -494,6 +494,104 @@
         var allPayloads = [];
 
         allPayloads.push(new Uint8Array([0x1D, 0x49, 0xF0, 0x19]));
+        allPayloads.push(new Uint8Array([0x1B, 0x40]));
+
+        for (var y = 0; y < height; y++) {
+          var rowData = new Uint8Array(widthBytes);
+          for (var x = 0; x < PRINTER_WIDTH; x++) {
+            var idx = (y * PRINTER_WIDTH + x) * 4;
+            if (imgData.data[idx] < 128) {
+              rowData[Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
+            }
+          }
+          for (var b = 0; b < widthBytes; b++) rowData[b] = revBits(rowData[b]);
+          allPayloads.push(makeCatCommand(0xA2, rowData));
+        }
+
+        allPayloads.push(makeCatCommand(0xA1, new Uint8Array([0x80, 0x00])));
+        allPayloads.push(new Uint8Array([0x0A, 0x0A, 0x0A, 0x0A]));
+
+        var totalBytes = 0;
+        allPayloads.forEach(function(p) { totalBytes += p.length; });
+        addLog('Команд: ' + allPayloads.length + ', байт: ' + totalBytes);
+
+        addLog('Пробуем ВСЕ characteristics с writeValue...');
+
+        for (var ci = 0; ci < allChars.length; ci++) {
+          var ch = allChars[ci];
+          if (!ch.properties.write && !ch.properties.writeWithoutResponse) continue;
+
+          addLog('--- Char: ' + ch.uuid.substring(0, 12) + ' ---', 'warn');
+
+          try {
+            var testCmd = new Uint8Array([0x1B, 0x40]);
+            try {
+              await ch.writeValue(testCmd);
+              addLog('  writeValue OK');
+            } catch(e1) {
+              addLog('  writeValue err: ' + e1.message);
+            }
+
+            try {
+              await ch.writeValueWithoutResponse(testCmd);
+              addLog('  writeValueNoRsp OK');
+            } catch(e2) {
+              addLog('  writeValueNoRsp err: ' + e2.message);
+            }
+          } catch(e) {
+            addLog('  char err: ' + e.message);
+          }
+        }
+
+        addLog('Отправка bitmap через основной TX...');
+        for (var pi = 0; pi < allPayloads.length; pi++) {
+          await txChar.writeValue(allPayloads[pi]);
+          if (pi % 50 === 0 && pi > 0) {
+            addLog('  ' + pi + '/' + allPayloads.length);
+            await sleep(5);
+          }
+        }
+
+        await sleep(3000);
+        addLog('Готово! Откройте крышку принтера — должны появиться RX ответы', 'success');
+        showToast('✅ Отправлено! Проверьте RX', 'success');
+      } catch (err) {
+        addLog('Ошибка: ' + err.message, 'error');
+        showToast('❌ ' + err.message, 'error');
+      } finally {
+        setTimeout(function() { btnPrint.disabled = false; }, 3000);
+      }
+    }
+      addLog('=== ПЕЧАТЬ ===', 'success');
+      btnPrint.disabled = true;
+      showToast('⏳ Печатается...', 'info', 5000);
+
+      try {
+        var receiptText = generateReceiptText();
+        addLog('Чек: ' + receiptText.length + ' символов');
+
+        var receiptCanvas = document.createElement('canvas');
+        receiptCanvas.width = PRINTER_WIDTH;
+        var lines = receiptText.split('\n');
+        var lineH = 24;
+        receiptCanvas.height = lines.length * lineH;
+        var ctx = receiptCanvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, PRINTER_WIDTH, receiptCanvas.height);
+        ctx.fillStyle = '#000';
+        ctx.font = '18px monospace';
+        ctx.textBaseline = 'top';
+        lines.forEach(function(line, i) {
+          ctx.fillText(line, 8, i * lineH + 4);
+        });
+        var imgData = ctx.getImageData(0, 0, PRINTER_WIDTH, receiptCanvas.height);
+
+        var widthBytes = Math.ceil(PRINTER_WIDTH / 8);
+        var height = receiptCanvas.height;
+
+        var allPayloads = [];
+
+        allPayloads.push(new Uint8Array([0x1D, 0x49, 0xF0, 0x19]));
 
         allPayloads.push(new Uint8Array([0x1B, 0x40]));
 
