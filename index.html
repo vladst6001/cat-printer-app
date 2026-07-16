@@ -88,26 +88,46 @@
     </div>
 
     <div class="section-label">Настройки печати</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <div class="input-group" style="flex:1;min-width:100px">
-        <label>Размер шрифта</label>
-        <input type="range" id="fontSize" min="14" max="36" value="24" oninput="updPreview()">
-        <span id="fontSizeVal" style="text-align:center;color:#888;font-size:13px">24px</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="input-group" style="flex:1;min-width:90px">
+        <label>Шрифт</label>
+        <input type="range" id="fontSize" min="12" max="40" value="24" oninput="updPreview()">
+        <span id="fontSizeVal" style="text-align:center;color:#888;font-size:12px">24px</span>
       </div>
-      <div class="input-group" style="flex:1;min-width:100px">
-        <label>Отступ снизу</label>
-        <input type="range" id="feedLines" min="0" max="10" value="2" oninput="updPreview()">
-        <span id="feedVal" style="text-align:center;color:#888;font-size:13px">2</span>
-      </div>
-      <div class="input-group" style="flex:1;min-width:100px">
+      <div class="input-group" style="flex:1;min-width:90px">
         <label>Межстрочный</label>
-        <input type="range" id="lineSpacing" min="0" max="10" value="2" oninput="updPreview()">
-        <span id="lineSpaceVal" style="text-align:center;color:#888;font-size:13px">2</span>
+        <input type="range" id="lineGap" min="0" max="15" value="2" oninput="updPreview()">
+        <span id="lineGapVal" style="text-align:center;color:#888;font-size:12px">2</span>
       </div>
-      <div class="input-group" style="flex:1;min-width:100px">
-        <label>Позиции: отступ</label>
-        <input type="range" id="itemSpacing" min="1" max="5" value="2" oninput="updPreview()">
-        <span id="itemSpaceVal" style="text-align:center;color:#888;font-size:13px">2</span>
+      <div class="input-group" style="flex:1;min-width:90px">
+        <label>После названия</label>
+        <input type="range" id="afterShop" min="0" max="5" value="2" oninput="updPreview()">
+        <span id="afterShopVal" style="text-align:center;color:#888;font-size:12px">2</span>
+      </div>
+      <div class="input-group" style="flex:1;min-width:90px">
+        <label>После заголовка</label>
+        <input type="range" id="afterHead" min="0" max="5" value="2" oninput="updPreview()">
+        <span id="afterHeadVal" style="text-align:center;color:#888;font-size:12px">2</span>
+      </div>
+      <div class="input-group" style="flex:1;min-width:90px">
+        <label>Между позициями</label>
+        <input type="range" id="itemGap" min="0" max="5" value="2" oninput="updPreview()">
+        <span id="itemGapVal" style="text-align:center;color:#888;font-size:12px">2</span>
+      </div>
+      <div class="input-group" style="flex:1;min-width:90px">
+        <label>После итого</label>
+        <input type="range" id="afterTotal" min="0" max="5" value="1" oninput="updPreview()">
+        <span id="afterTotalVal" style="text-align:center;color:#888;font-size:12px">1</span>
+      </div>
+      <div class="input-group" style="flex:1;min-width:90px">
+        <label>Отступ слева</label>
+        <input type="range" id="padLeft" min="0" max="20" value="4" oninput="updPreview()">
+        <span id="padLeftVal" style="text-align:center;color:#888;font-size:12px">4</span>
+      </div>
+      <div class="input-group" style="flex:1;min-width:90px">
+        <label>Снизу (строк)</label>
+        <input type="range" id="feedLines" min="0" max="10" value="2" oninput="updPreview()">
+        <span id="feedVal" style="text-align:center;color:#888;font-size:12px">2</span>
       </div>
     </div>
 
@@ -144,6 +164,8 @@
     function addItem(){var l=document.getElementById('itemsList');var r=document.createElement('div');r.className='item-row';r.innerHTML='<input type="text" placeholder="Название"><input type="number" value="1" min="1"><input type="number" value="0.00" min="0" step="0.01"><button class="item-remove" onclick="removeItem(this)">&times;</button>';l.appendChild(r)}
     function removeItem(b){var l=document.getElementById('itemsList');if(l.children.length>1)b.parentElement.remove()}
     function getItems(){var items=[];document.querySelectorAll('#itemsList .item-row').forEach(function(r){var i=r.querySelectorAll('input');var n=i[0].value.trim(),q=parseInt(i[1].value)||1,p=parseFloat(i[2].value)||0;if(n)items.push({name:n,qty:q,price:p})});return items}
+    function nl(n){var s='';for(var i=0;i<n;i++)s+='\n';return s}
+
     function genText(){
       var shop=(document.getElementById('shopName').value||'МАГАЗИН').toUpperCase();
       var custom=document.getElementById('customText').value.trim();
@@ -151,38 +173,47 @@
       var num=Math.floor(Math.random()*9000)+1000;
       var now=new Date(),ds=now.toLocaleDateString('ru-RU'),ts=now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
       var total=0;items.forEach(function(it){total+=it.qty*it.price});
-      var itemSp=parseInt(document.getElementById('itemSpacing').value)||2;
-      var sp='\n';
-      for(var i=1;i<itemSp;i++)sp+='\n';
+      var as=parseInt(document.getElementById('afterShop').value)||0;
+      var ah=parseInt(document.getElementById('afterHead').value)||0;
+      var ig=parseInt(document.getElementById('itemGap').value)||1;
+      var at=parseInt(document.getElementById('afterTotal').value)||0;
+      var fd=parseInt(document.getElementById('feedLines').value)||0;
       var sep='================================';
-      var t=sep+'\n\n  '+shop+'\n\n'+sep+'\n\n  ЗАКАЗ #'+num+'\n  '+ds+'  '+ts+'\n\n--------------------------------\n';
+      var t=sep+nl(2)+shop+nl(as)+sep+nl(ah);
+      t+='ЗАКАЗ #'+num+'\n'+ds+'  '+ts+'\n\n--------------------------------\n';
       items.forEach(function(it){
-        t+=sp+'  '+it.name+'\n    '+it.qty+' x '+it.price.toFixed(2)+' = '+(it.qty*it.price).toFixed(2)+'\n';
+        t+=nl(ig)+it.name+'\n  '+it.qty+' x '+it.price.toFixed(2)+' = '+(it.qty*it.price).toFixed(2)+'\n';
       });
-      t+='\n--------------------------------\n\n  ИТОГО:  '+total.toFixed(2)+' руб.\n\n'+sep+'\n';
+      t+='\n--------------------------------\n'+nl(at);
+      t+='ИТОГО:  '+total.toFixed(2)+' руб.\n\n'+sep+'\n';
       if(custom)t+='\n'+custom+'\n\n'+sep+'\n';
-      t+='\n       Спасибо!\n';
-      var feedN=parseInt(document.getElementById('feedLines').value)||0;
-      for(var i=0;i<feedN;i++)t+='\n';
+      t+='\n     Спасибо!\n'+nl(fd);
       return t;
     }
 
     function updPreview(){
       var fs=parseInt(document.getElementById('fontSize').value)||24;
-      var ls=parseInt(document.getElementById('lineSpacing').value)||0;
+      var lg=parseInt(document.getElementById('lineGap').value)||0;
+      var as=parseInt(document.getElementById('afterShop').value)||0;
+      var ah=parseInt(document.getElementById('afterHead').value)||0;
+      var ig=parseInt(document.getElementById('itemGap').value)||1;
+      var at=parseInt(document.getElementById('afterTotal').value)||0;
+      var pl=parseInt(document.getElementById('padLeft').value)||4;
       var fd=parseInt(document.getElementById('feedLines').value)||0;
-      var is=parseInt(document.getElementById('itemSpacing').value)||2;
 
       document.getElementById('fontSizeVal').textContent=fs+'px';
+      document.getElementById('lineGapVal').textContent=lg;
+      document.getElementById('afterShopVal').textContent=as;
+      document.getElementById('afterHeadVal').textContent=ah;
+      document.getElementById('itemGapVal').textContent=ig;
+      document.getElementById('afterTotalVal').textContent=at;
+      document.getElementById('padLeftVal').textContent=pl;
       document.getElementById('feedVal').textContent=fd;
-      document.getElementById('lineSpaceVal').textContent=ls;
-      document.getElementById('itemSpaceVal').textContent=is;
 
       var text=genText();
       var lines=text.split('\n');
-      var lh=Math.round(fs*1.25);
-      var lhExtra=lh+ls;
-      var totalH=lines.length*lhExtra+ls*fs;
+      var lh=Math.round(fs*1.25)+lg;
+      var totalH=lines.length*lh+20;
 
       var cv=document.getElementById('previewCanvas');
       cv.width=W;cv.height=totalH;
@@ -191,7 +222,7 @@
       cx.fillStyle='#000';
       cx.font=fs+'px monospace';
       cx.textBaseline='top';
-      lines.forEach(function(l,i){cx.fillText(l,4,i*lhExtra+4)});
+      lines.forEach(function(l,i){cx.fillText(l,pl,i*lh+4)});
     }
 
     document.getElementById('shopName').addEventListener('input',updPreview);
@@ -244,12 +275,14 @@
         log('Генерация canvas...');
 
         var fs=parseInt(document.getElementById('fontSize').value)||24;
-        var ls=text.split('\n'),lh=Math.round(fs*1.25);
-        var cv=document.createElement('canvas');cv.width=W;cv.height=ls.length*lh;
+        var lg=parseInt(document.getElementById('lineGap').value)||0;
+        var pl=parseInt(document.getElementById('padLeft').value)||4;
+        var ls=text.split('\n'),lh=Math.round(fs*1.25)+lg;
+        var cv=document.createElement('canvas');cv.width=W;cv.height=ls.length*lh+20;
         var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,W,cv.height);
         cx.fillStyle='#000';cx.font=fs+'px monospace';cx.textBaseline='top';
-        ls.forEach(function(l,i){cx.fillText(l,4,i*lh+4)});
-        log('Шрифт: '+fs+'px, высота: '+cv.height+'px, строк: '+ls.length);
+        ls.forEach(function(l,i){cx.fillText(l,pl,i*lh+4)});
+        log('Шрифт: '+fs+'px, высота: '+cv.height+'px');
 
         log('Конвертация в bitmap...');
         var imgData=cx.getImageData(0,0,W,cv.height);
