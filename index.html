@@ -255,12 +255,13 @@
 
       var total = 0;
       var lines = [];
+      var sep = '================================';
 
-      lines.push('================================');
+      lines.push(sep);
       lines.push('');
       lines.push(centerText(shopName));
       lines.push('');
-      lines.push('================================');
+      lines.push(sep);
       lines.push('');
       lines.push('  ЗАКАЗ #' + orderNum);
       lines.push('  ' + dateStr + '  ' + timeStr);
@@ -270,10 +271,10 @@
       items.forEach(function(item) {
         var itemTotal = item.qty * item.price;
         total += itemTotal;
-        var qtyStr = item.qty + ' x ' + item.price.toFixed(2);
         lines.push('');
         lines.push('  ' + item.name);
-        lines.push('    ' + qtyStr + '    = ' + itemTotal.toFixed(2));
+        var priceLine = '    ' + item.qty + ' x ' + item.price.toFixed(2) + '    = ' + itemTotal.toFixed(2);
+        lines.push(priceLine);
       });
 
       lines.push('');
@@ -281,7 +282,7 @@
       lines.push('');
       lines.push('  ИТОГО:  ' + total.toFixed(2) + ' руб.');
       lines.push('');
-      lines.push('================================');
+      lines.push(sep);
 
       if (customText) {
         lines.push('');
@@ -289,7 +290,7 @@
           lines.push('  ' + l);
         });
         lines.push('');
-        lines.push('================================');
+        lines.push(sep);
       }
 
       lines.push('');
@@ -452,54 +453,29 @@
         showToast('Не подключён', 'error');
         return;
       }
-      addLog('=== ПЕЧАТЬ ===', 'success');
+      addLog('=== ПЕЧАТЬ ЧЕКА (ТЕКСТ) ===', 'success');
       btnPrint.disabled = true;
       showToast('⏳ Печатается...', 'info', 5000);
 
       try {
+        var encoder = new TextEncoder();
         var lines = generateReceiptLines();
-        var receiptCanvas = document.getElementById('receiptCanvas');
-        renderReceiptToCanvas(lines, receiptCanvas);
+        var receipt = lines.join('\n') + '\n\n\n\n';
 
-        addLog('Размер чека: ' + receiptCanvas.width + 'x' + receiptCanvas.height + ' px');
+        var initCmd = new Uint8Array([0x1b, 0x40]);
+        var textData = encoder.encode(receipt);
+        var cutCmd = new Uint8Array([0x1b, 0x64, 0x05]);
 
-        var pixels = pixelsFromCanvas(receiptCanvas);
-        var height = pixels.length;
-        var width = pixels[0].length;
-        var widthBytes = Math.ceil(width / 8);
-        var bitmap = new Uint8Array(widthBytes * height);
-
-        for (var y = 0; y < height; y++) {
-          for (var x = 0; x < width; x++) {
-            if (pixels[y][x]) {
-              bitmap[y * widthBytes + (x >> 3)] |= 1 << (7 - (x & 7));
-            }
-          }
-        }
-
-        var header = new Uint8Array([
-          0x1d, 0x76, 0x30, 0x00,
-          widthBytes & 0xff, (widthBytes >> 8) & 0xff,
-          height & 0xff, (height >> 8) & 0xff
-        ]);
-
-        var init = new Uint8Array([0x1b, 0x40]);
-        var feed = new Uint8Array([0x1b, 0x64, 0x0a]);
-        var lf = new Uint8Array([0x0a, 0x0a, 0x0a, 0x0a, 0x0a]);
-
-        var total = init.length + header.length + bitmap.length + feed.length + lf.length;
+        var total = initCmd.length + textData.length + cutCmd.length;
         var job = new Uint8Array(total);
         var pos = 0;
-        job.set(init, pos); pos += init.length;
-        job.set(header, pos); pos += header.length;
-        job.set(bitmap, pos); pos += bitmap.length;
-        job.set(feed, pos); pos += feed.length;
-        job.set(lf, pos);
+        job.set(initCmd, pos); pos += initCmd.length;
+        job.set(textData, pos); pos += textData.length;
+        job.set(cutCmd, pos);
 
-        addLog('Print job: ' + job.length + ' bytes (' + bitmap.length + ' bitmap)');
-
+        addLog('Чек: ' + job.length + ' байт, ' + lines.length + ' строк');
         await sendRaw(job);
-        await sleep(1500);
+        await sleep(2000);
 
         addLog('Печать завершена!', 'success');
         showToast('✅ Напечатано!', 'success');
