@@ -157,6 +157,28 @@
     function addItem(){var l=document.getElementById('itemsList');var r=document.createElement('div');r.className='item-row';r.innerHTML='<input type="text" placeholder="Название"><input type="number" value="1" min="1"><button class="item-remove" onclick="removeItem(this)">&times;</button>';l.appendChild(r)}
     function removeItem(b){var l=document.getElementById('itemsList');if(l.children.length>1)b.parentElement.remove()}
     function getItems(){var items=[];document.querySelectorAll('#itemsList .item-row').forEach(function(r){var i=r.querySelectorAll('input');var n=i[0].value.trim(),q=parseInt(i[1].value)||1;if(n)items.push({name:n,qty:q})});return items}
+    function bigNum(n){
+      var digits={
+        '0':[' ███ ','█   █','█   █','█   █',' ███ '],
+        '1':['  █  ','  █  ','  █  ','  █  ','  █  '],
+        '2':[' ███ ','    █',' ███ ','█    ','█████'],
+        '3':[' ███ ','    █',' ███ ','    █',' ███ '],
+        '4':['█   █','█   █','█████','    █','    █'],
+        '5':['█████','█    ','████ ','    █','████ '],
+        '6':[' ███ ','█    ','████ ','█   █',' ███ '],
+        '7':['█████','    █','   █ ','  █  ','  █  '],
+        '8':[' ███ ','█   █',' ███ ','█   █',' ███ '],
+        '9':[' ███ ','█   █',' ███ ','    █',' ███ ']
+      };
+      var s=String(n).split('');
+      var lines=['','','','',''];
+      s.forEach(function(d){
+        var g=digits[d]||digits['0'];
+        for(var i=0;i<5;i++)lines[i]+=' '+g[i]+' ';
+      });
+      return lines;
+    }
+
     function nl(n){var s='';for(var i=0;i<n;i++)s+='\n';return s}
 
     function genText(){
@@ -169,19 +191,22 @@
       var fd=parseInt(document.getElementById('feedLines').value)||0;
       var sep='================================';
 
-      var t=sep+'\n\n';
-      t+=shop+'\n\n';
-      t+=sep+'\n\n';
-      t+='ЗАКАЗ #'+num+'\n\n';
-      t+=ds+'  '+ts+'\n\n';
+      var t=shop+'\n\n';
+
+      var big=bigNum(num);
+      big.forEach(function(l){t+=l+'\n'});
+      t+='\n';
+
       t+=sep+'\n\n';
 
       items.forEach(function(it){
-        var line=it.qty+'x '+it.name;
-        t+=line+'\n';
+        t+=it.qty+'x '+it.name+'\n';
         t+=nl(ig);
       });
 
+      t+=sep+'\n\n';
+      t+='Время: '+ts+'\n';
+      t+='Дата:  '+ds+'\n\n';
       t+=sep+'\n';
 
       if(custom)t+='\n'+custom+'\n\n'+sep+'\n';
