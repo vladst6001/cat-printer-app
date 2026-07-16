@@ -91,33 +91,38 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <div class="input-group" style="flex:1;min-width:90px">
         <label>Шрифт</label>
-        <input type="range" id="fontSize" min="12" max="40" value="24" oninput="updPreview()">
-        <span id="fontSizeVal" style="text-align:center;color:#888;font-size:12px">24px</span>
+        <input type="range" id="fontSize" min="12" max="40" value="25" oninput="updPreview()">
+        <span id="fontSizeVal" style="text-align:center;color:#888;font-size:12px">25px</span>
+      </div>
+      <div class="input-group" style="flex:1;min-width:90px">
+        <label>Ширина текста</label>
+        <input type="range" id="textScale" min="100" max="200" value="100" oninput="updPreview()">
+        <span id="textScaleVal" style="text-align:center;color:#888;font-size:12px">100%</span>
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>Межстрочный</label>
-        <input type="range" id="lineGap" min="0" max="15" value="2" oninput="updPreview()">
-        <span id="lineGapVal" style="text-align:center;color:#888;font-size:12px">2</span>
+        <input type="range" id="lineGap" min="0" max="15" value="0" oninput="updPreview()">
+        <span id="lineGapVal" style="text-align:center;color:#888;font-size:12px">0</span>
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>После названия</label>
-        <input type="range" id="afterShop" min="0" max="5" value="2" oninput="updPreview()">
-        <span id="afterShopVal" style="text-align:center;color:#888;font-size:12px">2</span>
+        <input type="range" id="afterShop" min="0" max="5" value="1" oninput="updPreview()">
+        <span id="afterShopVal" style="text-align:center;color:#888;font-size:12px">1</span>
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>После заголовка</label>
-        <input type="range" id="afterHead" min="0" max="5" value="2" oninput="updPreview()">
-        <span id="afterHeadVal" style="text-align:center;color:#888;font-size:12px">2</span>
+        <input type="range" id="afterHead" min="0" max="5" value="1" oninput="updPreview()">
+        <span id="afterHeadVal" style="text-align:center;color:#888;font-size:12px">1</span>
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>Между позициями</label>
-        <input type="range" id="itemGap" min="0" max="5" value="2" oninput="updPreview()">
-        <span id="itemGapVal" style="text-align:center;color:#888;font-size:12px">2</span>
+        <input type="range" id="itemGap" min="0" max="5" value="1" oninput="updPreview()">
+        <span id="itemGapVal" style="text-align:center;color:#888;font-size:12px">1</span>
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>После итого</label>
-        <input type="range" id="afterTotal" min="0" max="5" value="1" oninput="updPreview()">
-        <span id="afterTotalVal" style="text-align:center;color:#888;font-size:12px">1</span>
+        <input type="range" id="afterTotal" min="0" max="5" value="0" oninput="updPreview()">
+        <span id="afterTotalVal" style="text-align:center;color:#888;font-size:12px">0</span>
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>Отступ слева</label>
@@ -126,8 +131,8 @@
       </div>
       <div class="input-group" style="flex:1;min-width:90px">
         <label>Снизу (строк)</label>
-        <input type="range" id="feedLines" min="0" max="10" value="2" oninput="updPreview()">
-        <span id="feedVal" style="text-align:center;color:#888;font-size:12px">2</span>
+        <input type="range" id="feedLines" min="0" max="10" value="0" oninput="updPreview()">
+        <span id="feedVal" style="text-align:center;color:#888;font-size:12px">0</span>
       </div>
     </div>
 
@@ -192,7 +197,8 @@
     }
 
     function updPreview(){
-      var fs=parseInt(document.getElementById('fontSize').value)||24;
+      var fs=parseInt(document.getElementById('fontSize').value)||25;
+      var ts=parseInt(document.getElementById('textScale').value)||100;
       var lg=parseInt(document.getElementById('lineGap').value)||0;
       var as=parseInt(document.getElementById('afterShop').value)||0;
       var ah=parseInt(document.getElementById('afterHead').value)||0;
@@ -202,6 +208,7 @@
       var fd=parseInt(document.getElementById('feedLines').value)||0;
 
       document.getElementById('fontSizeVal').textContent=fs+'px';
+      document.getElementById('textScaleVal').textContent=ts+'%';
       document.getElementById('lineGapVal').textContent=lg;
       document.getElementById('afterShopVal').textContent=as;
       document.getElementById('afterHeadVal').textContent=ah;
@@ -213,23 +220,49 @@
       var text=genText();
       var lines=text.split('\n');
       var lh=Math.round(fs*1.25)+lg;
+      var scaleX=ts/100;
+      var outW=Math.round(W*scaleX);
       var totalH=lines.length*lh+20;
 
       var cv=document.getElementById('previewCanvas');
-      cv.width=W;cv.height=totalH;
+      cv.width=outW;cv.height=totalH;
       var cx=cv.getContext('2d');
-      cx.fillStyle='#fff';cx.fillRect(0,0,W,totalH);
+      cx.fillStyle='#fff';cx.fillRect(0,0,outW,totalH);
       cx.fillStyle='#000';
       cx.font=fs+'px monospace';
       cx.textBaseline='top';
-      lines.forEach(function(l,i){cx.fillText(l,pl,i*lh+4)});
+      cx.save();
+      cx.scale(scaleX,1);
+      lines.forEach(function(l,i){cx.fillText(l,pl/scaleX,i*lh+4)});
+      cx.restore();
+
+      localStorage.setItem('yhk_settings',JSON.stringify({
+        fontSize:fs,textScale:ts,lineGap:lg,afterShop:as,afterHead:ah,
+        itemGap:ig,afterTotal:at,padLeft:pl,feedLines:fd
+      }));
     }
 
     document.getElementById('shopName').addEventListener('input',updPreview);
     document.getElementById('customText').addEventListener('input',updPreview);
     document.getElementById('itemsList').addEventListener('input',updPreview);
 
-    setTimeout(updPreview,100);
+    (function(){
+      try{
+        var s=JSON.parse(localStorage.getItem('yhk_settings'));
+        if(s){
+          if(s.fontSize)document.getElementById('fontSize').value=s.fontSize;
+          if(s.textScale)document.getElementById('textScale').value=s.textScale;
+          if(s.lineGap!==undefined)document.getElementById('lineGap').value=s.lineGap;
+          if(s.afterShop!==undefined)document.getElementById('afterShop').value=s.afterShop;
+          if(s.afterHead!==undefined)document.getElementById('afterHead').value=s.afterHead;
+          if(s.itemGap!==undefined)document.getElementById('itemGap').value=s.itemGap;
+          if(s.afterTotal!==undefined)document.getElementById('afterTotal').value=s.afterTotal;
+          if(s.padLeft!==undefined)document.getElementById('padLeft').value=s.padLeft;
+          if(s.feedLines!==undefined)document.getElementById('feedLines').value=s.feedLines;
+        }
+      }catch(e){}
+      setTimeout(updPreview,100);
+    })();
 
     function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
@@ -274,15 +307,20 @@
         var text=genText();
         log('Генерация canvas...');
 
-        var fs=parseInt(document.getElementById('fontSize').value)||24;
+        var fs=parseInt(document.getElementById('fontSize').value)||25;
+        var ts=parseInt(document.getElementById('textScale').value)||100;
         var lg=parseInt(document.getElementById('lineGap').value)||0;
         var pl=parseInt(document.getElementById('padLeft').value)||4;
+        var scaleX=ts/100;
+        var outW=Math.round(W*scaleX);
         var ls=text.split('\n'),lh=Math.round(fs*1.25)+lg;
-        var cv=document.createElement('canvas');cv.width=W;cv.height=ls.length*lh+20;
-        var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,W,cv.height);
+        var cv=document.createElement('canvas');cv.width=outW;cv.height=ls.length*lh+20;
+        var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,outW,cv.height);
         cx.fillStyle='#000';cx.font=fs+'px monospace';cx.textBaseline='top';
-        ls.forEach(function(l,i){cx.fillText(l,pl,i*lh+4)});
-        log('Шрифт: '+fs+'px, высота: '+cv.height+'px');
+        cx.save();cx.scale(scaleX,1);
+        ls.forEach(function(l,i){cx.fillText(l,pl/scaleX,i*lh+4)});
+        cx.restore();
+        log('Шрифт: '+fs+'px, ширина: '+ts+'%, высота: '+cv.height+'px');
 
         log('Конвертация в bitmap...');
         var imgData=cx.getImageData(0,0,W,cv.height);
