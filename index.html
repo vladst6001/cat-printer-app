@@ -12,10 +12,10 @@
       background: #0a0a0a; color: #fff; min-height: 100vh;
       display: flex; justify-content: center; padding: 20px;
     }
-    .app { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; padding-top: 30px; }
+    .app { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; padding-top: 20px; }
     .header { text-align: center; font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 2px; }
     .status-bar {
-      display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px; padding: 14px 18px;
       background: #141414; border-radius: 12px; border: 1px solid #222;
     }
     .status-dot {
@@ -26,16 +26,15 @@
     .status-text { font-size: 15px; font-weight: 500; }
     .printer-name { margin-left: auto; font-size: 13px; color: #666; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .btn {
-      width: 100%; padding: 18px; border: none; border-radius: 12px;
-      font-size: 17px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      width: 100%; padding: 16px; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn:active { transform: scale(0.97); }
     .btn-primary { background: #2563eb; color: #fff; }
-    .btn-primary:hover { background: #1d4ed8; }
     .btn-print { background: #16a34a; color: #fff; }
-    .btn-print:hover { background: #15803d; }
-    .btn-disconnect { background: #991b1b; color: #fff; font-size: 14px; padding: 12px; }
+    .btn-disconnect { background: #991b1b; color: #fff; font-size: 14px; padding: 10px; }
+    .btn-danger { background: #dc2626; color: #fff; }
     .btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
     .spinner {
       display: inline-block; width: 18px; height: 18px;
@@ -43,10 +42,45 @@
       border-radius: 50%; animation: spin 0.6s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .section-label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+    .input-group { display: flex; flex-direction: column; gap: 8px; }
+    .input-group label { font-size: 13px; color: #888; }
+    .input-group input, .input-group textarea {
+      width: 100%; padding: 12px 14px; background: #141414; border: 1px solid #333;
+      border-radius: 10px; color: #fff; font-size: 15px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
+    }
+    .input-group input:focus, .input-group textarea:focus { border-color: #2563eb; }
+    .input-group textarea { min-height: 60px; resize: vertical; }
+    .items-list { display: flex; flex-direction: column; gap: 6px; }
+    .item-row {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .item-row input[type="text"] { flex: 1; }
+    .item-row input[type="number"] { width: 60px; flex: none; text-align: center; }
+    .item-row input[type="number"] { width: 60px; }
+    .item-row input { padding: 10px; background: #141414; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
+    .item-row input:focus { border-color: #2563eb; }
+    .item-row input[type="number"] { width: 55px; text-align: center; }
+    .item-row input[type="text"] { flex: 1; }
+    .item-remove {
+      background: none; border: none; color: #666; font-size: 20px;
+      cursor: pointer; padding: 4px 8px; line-height: 1;
+    }
+    .item-remove:hover { color: #f87171; }
+    .add-item-btn {
+      background: none; border: 1px dashed #444; border-radius: 8px;
+      color: #666; padding: 8px; cursor: pointer; font-size: 14px; text-align: center;
+    }
+    .add-item-btn:hover { border-color: #2563eb; color: #2563eb; }
+    .preview-box {
+      background: #fff; border-radius: 8px; padding: 12px; overflow-x: auto;
+    }
+    .preview-box canvas { display: block; margin: 0 auto; image-rendering: pixelated; }
     .log-box {
       background: #111; border: 1px solid #222; border-radius: 8px;
-      padding: 10px; max-height: 400px; overflow-y: auto;
-      font-family: monospace; font-size: 11px; color: #888; line-height: 1.6;
+      padding: 10px; max-height: 200px; overflow-y: auto;
+      font-family: monospace; font-size: 11px; color: #888; line-height: 1.5;
     }
     .log-entry { white-space: pre-wrap; word-break: break-all; }
     .log-entry.error { color: #f87171; }
@@ -56,27 +90,66 @@
       position: fixed; top: 20px; left: 50%;
       transform: translateX(-50%) translateY(-100px);
       padding: 14px 24px; border-radius: 10px; font-size: 15px; font-weight: 500;
-      z-index: 1000; transition: transform 0.3s ease;
-      max-width: 90vw; text-align: center;
+      z-index: 1000; transition: transform 0.3s ease; max-width: 90vw; text-align: center;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
     .toast-info { background: #1e40af; color: #fff; }
     .toast-success { background: #166534; color: #fff; }
     .toast-error { background: #991b1b; color: #fff; }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="header">Cat Printer Test</div>
+
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
       <span class="status-text" id="statusText">Не подключён</span>
       <span class="printer-name" id="printerName"></span>
     </div>
+
     <button class="btn btn-primary" id="btnScan" onclick="startScan()">Найти принтер</button>
-    <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>Напечатать тестовый чек</button>
     <button class="btn btn-disconnect" id="btnDisconnect" onclick="disconnectPrinter()" style="display:none">Отключиться</button>
-    <div style="font-size:12px;color:#555;text-transform:uppercase;letter-spacing:1px">Лог</div>
+
+    <div class="section-label">Настройка чека</div>
+
+    <div class="input-group">
+      <label>Название заведения</label>
+      <input type="text" id="shopName" value="ШАУРМА №1" placeholder="Название магазина">
+    </div>
+
+    <div class="section-label">Позиции</div>
+    <div class="items-list" id="itemsList">
+      <div class="item-row">
+        <input type="text" value="Шаурма классическая" placeholder="Название">
+        <input type="number" value="1" min="1" max="99" placeholder="кол-во">
+        <input type="number" value="8.50" min="0" step="0.01" placeholder="цена">
+        <button class="item-remove" onclick="removeItem(this)">&times;</button>
+      </div>
+      <div class="item-row">
+        <input type="text" value="Чипсы из лаваша" placeholder="Название">
+        <input type="number" value="1" min="1" max="99" placeholder="кол-во">
+        <input type="number" value="3.00" min="0" step="0.01" placeholder="цена">
+        <button class="item-remove" onclick="removeItem(this)">&times;</button>
+      </div>
+    </div>
+    <button class="add-item-btn" onclick="addItem()">+ Добавить позицию</button>
+
+    <div class="input-group">
+      <label>Свой текст (опционально)</label>
+      <textarea id="customText" placeholder="Дополнительный текст для чека..."></textarea>
+    </div>
+
+    <div class="section-label">Предпросмотр</div>
+    <div class="preview-box">
+      <canvas id="previewCanvas" width="384" height="300"></canvas>
+    </div>
+
+    <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>Напечатать чек</button>
+
+    <div class="section-label">Лог</div>
     <div class="log-box" id="logBox"></div>
   </div>
   <div class="toast toast-info" id="toast"></div>
@@ -136,8 +209,155 @@
       addLog('Отключено', 'error');
     }
 
+    function addItem() {
+      var list = document.getElementById('itemsList');
+      var row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML =
+        '<input type="text" value="" placeholder="Название">' +
+        '<input type="number" value="1" min="1" max="99">' +
+        '<input type="number" value="0.00" min="0" step="0.01">' +
+        '<button class="item-remove" onclick="removeItem(this)">&times;</button>';
+      list.appendChild(row);
+    }
+
+    function removeItem(btn) {
+      var list = document.getElementById('itemsList');
+      if (list.children.length > 1) {
+        btn.parentElement.remove();
+        updatePreview();
+      }
+    }
+
+    function getItems() {
+      var rows = document.querySelectorAll('#itemsList .item-row');
+      var items = [];
+      rows.forEach(function(row) {
+        var inputs = row.querySelectorAll('input');
+        var name = inputs[0].value.trim();
+        var qty = parseInt(inputs[1].value) || 1;
+        var price = parseFloat(inputs[2].value) || 0;
+        if (name) items.push({ name: name, qty: qty, price: price });
+      });
+      return items;
+    }
+
+    function generateReceiptLines() {
+      var shopName = document.getElementById('shopName').value.trim() || 'МАГАЗИН';
+      var customText = document.getElementById('customText').value.trim();
+      var items = getItems();
+      var orderNum = Math.floor(Math.random() * 9000) + 1000;
+      var now = new Date();
+      var dateStr = now.toLocaleDateString('ru-RU');
+      var timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+      var total = 0;
+      var lines = [];
+
+      lines.push('================================');
+      lines.push('');
+      lines.push(centerText(shopName));
+      lines.push('');
+      lines.push('================================');
+      lines.push('');
+      lines.push('  ЗАКАЗ #' + orderNum);
+      lines.push('  ' + dateStr + '  ' + timeStr);
+      lines.push('');
+      lines.push('--------------------------------');
+
+      items.forEach(function(item) {
+        var itemTotal = item.qty * item.price;
+        total += itemTotal;
+        var qtyStr = item.qty + ' x ' + item.price.toFixed(2);
+        lines.push('');
+        lines.push('  ' + item.name);
+        lines.push('    ' + qtyStr + '    = ' + itemTotal.toFixed(2));
+      });
+
+      lines.push('');
+      lines.push('--------------------------------');
+      lines.push('');
+      lines.push('  ИТОГО:  ' + total.toFixed(2) + ' руб.');
+      lines.push('');
+      lines.push('================================');
+
+      if (customText) {
+        lines.push('');
+        customText.split('\n').forEach(function(l) {
+          lines.push('  ' + l);
+        });
+        lines.push('');
+        lines.push('================================');
+      }
+
+      lines.push('');
+      lines.push(centerText('Спасибо за покупку!'));
+      lines.push('');
+      lines.push('');
+
+      return lines;
+    }
+
+    function centerText(text) {
+      var w = 32;
+      var pad = Math.max(0, Math.floor((w - text.length) / 2));
+      var s = '';
+      for (var i = 0; i < pad; i++) s += ' ';
+      s += text;
+      return s;
+    }
+
+    function renderReceiptToCanvas(lines, canvas) {
+      var ctx = canvas.getContext('2d');
+      var fontSize = 20;
+      var lineHeight = fontSize + 8;
+      var padding = 16;
+      var height = lines.length * lineHeight + padding * 2;
+
+      canvas.width = PRINTER_WIDTH;
+      canvas.height = height;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, PRINTER_WIDTH, height);
+      ctx.fillStyle = '#000000';
+      ctx.font = fontSize + 'px monospace';
+      ctx.textBaseline = 'top';
+
+      lines.forEach(function(line, i) {
+        ctx.fillText(line, padding, padding + i * lineHeight);
+      });
+
+      return { width: PRINTER_WIDTH, height: height };
+    }
+
+    function pixelsFromCanvas(canvas) {
+      var ctx = canvas.getContext('2d');
+      var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var pixels = [];
+      for (var y = 0; y < canvas.height; y++) {
+        var row = [];
+        for (var x = 0; x < canvas.width; x++) {
+          var idx = (y * canvas.width + x) * 4;
+          var gray = imgData.data[idx] * 0.299 + imgData.data[idx+1] * 0.587 + imgData.data[idx+2] * 0.114;
+          row.push(gray < 128);
+        }
+        pixels.push(row);
+      }
+      return pixels;
+    }
+
+    function updatePreview() {
+      var lines = generateReceiptLines();
+      var canvas = document.getElementById('previewCanvas');
+      renderReceiptToCanvas(lines, canvas);
+    }
+
+    document.getElementById('shopName').addEventListener('input', updatePreview);
+    document.getElementById('customText').addEventListener('input', updatePreview);
+    document.getElementById('itemsList').addEventListener('input', updatePreview);
+
     async function startScan() {
-      addLog('Сканирование (фильтр: YHK*)...', 'success');
+      addLog('Сканирование...', 'success');
       btnScan.disabled = true;
       btnScan.innerHTML = '<span class="spinner"></span> Поиск...';
 
@@ -169,7 +389,7 @@
         addLog('ISSC сервис найден!', 'success');
 
         txChar = await service.getCharacteristic(ISSC_TX);
-        addLog('TX characteristic: ' + txChar.uuid, 'success');
+        addLog('TX: ' + txChar.uuid, 'success');
 
         try {
           var rxChar = await service.getCharacteristic(ISSC_RX);
@@ -178,20 +398,21 @@
             var val = new Uint8Array(e.target.value.buffer);
             addLog('RX: ' + Array.from(val).map(function(b) { return b.toString(16).padStart(2,'0'); }).join(' '));
           });
-          addLog('Notify подписка OK', 'success');
+          addLog('Notify OK', 'success');
         } catch(e) {
-          addLog('Notify недоступен (не критично)', 'warn');
+          addLog('Notify недоступен', 'warn');
         }
 
         btDevice.addEventListener('gattserverdisconnected', function() {
-          addLog('Устройство отключено', 'error');
+          addLog('Отключено', 'error');
           device = null; txChar = null; setStatus(false);
         });
 
         device = btDevice;
         setStatus(true, btDevice.name);
-        showToast('Подключён: ' + btDevice.name, 'success');
-        addLog('=== ГОТОВО К ПЕЧАТИ ===', 'success');
+        showToast('Подключён!', 'success');
+        addLog('=== ГОТОВО ===', 'success');
+        updatePreview();
       } catch (err) {
         addLog('Ошибка: ' + err.message, 'error');
         showToast('Ошибка: ' + err.message, 'error');
@@ -213,7 +434,7 @@
 
     async function printReceipt() {
       if (!device || !device.gatt.connected) {
-        showToast('Принтер не подключён', 'error');
+        showToast('Не подключён', 'error');
         return;
       }
       addLog('=== ПЕЧАТЬ ===', 'success');
@@ -221,35 +442,49 @@
       showToast('⏳ Печатается...', 'info', 5000);
 
       try {
-        var orderNum = Math.floor(Math.random() * 9000) + 1000;
-        var now = new Date();
-        var dateStr = now.toLocaleDateString('ru-RU');
-        var timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        var lines = generateReceiptLines();
+        var receiptCanvas = document.getElementById('receiptCanvas');
+        renderReceiptToCanvas(lines, receiptCanvas);
 
-        var lines = [
-          '================================',
-          '      ТЕСТОВЫЙ ЗАКАЗ #' + orderNum,
-          '================================',
-          '',
-          '  Шаурма классическая    2 шт.',
-          '  Чипсы из лаваша        1 шт.',
-          '  Молочный коктейль      1 шт.',
-          '',
-          '================================',
-          '  Сумма:           12.50 руб.',
-          '  Время:    ' + dateStr + ' ' + timeStr,
-          '================================',
-          ''
-        ];
+        addLog('Размер чека: ' + receiptCanvas.width + 'x' + receiptCanvas.height + ' px');
 
-        var pixels = renderTextToPixels(lines);
-        addLog('Pixels: ' + pixels[0].length + 'x' + pixels.length);
+        var pixels = pixelsFromCanvas(receiptCanvas);
+        var height = pixels.length;
+        var width = pixels[0].length;
+        var widthBytes = Math.ceil(width / 8);
+        var bitmap = new Uint8Array(widthBytes * height);
 
-        var job = buildPrintJob(pixels);
-        addLog('Print job: ' + job.length + ' bytes');
+        for (var y = 0; y < height; y++) {
+          for (var x = 0; x < width; x++) {
+            if (pixels[y][x]) {
+              bitmap[y * widthBytes + (x >> 3)] |= 1 << (7 - (x & 7));
+            }
+          }
+        }
+
+        var header = new Uint8Array([
+          0x1d, 0x76, 0x30, 0x00,
+          widthBytes & 0xff, (widthBytes >> 8) & 0xff,
+          height & 0xff, (height >> 8) & 0xff
+        ]);
+
+        var init = new Uint8Array([0x1b, 0x40]);
+        var feed = new Uint8Array([0x1b, 0x64, 0x0a]);
+        var lf = new Uint8Array([0x0a, 0x0a, 0x0a, 0x0a, 0x0a]);
+
+        var total = init.length + header.length + bitmap.length + feed.length + lf.length;
+        var job = new Uint8Array(total);
+        var pos = 0;
+        job.set(init, pos); pos += init.length;
+        job.set(header, pos); pos += header.length;
+        job.set(bitmap, pos); pos += bitmap.length;
+        job.set(feed, pos); pos += feed.length;
+        job.set(lf, pos);
+
+        addLog('Print job: ' + job.length + ' bytes (' + bitmap.length + ' bitmap)');
 
         await sendRaw(job);
-        await sleep(1500);
+        await sleep(2000);
 
         addLog('Печать завершена!', 'success');
         showToast('✅ Напечатано!', 'success');
@@ -261,80 +496,11 @@
       }
     }
 
-    function renderTextToPixels(lines) {
-      var canvas = document.getElementById('receiptCanvas');
-      var ctx = canvas.getContext('2d');
-      var lineHeight = 24;
-      var padding = 10;
-      var height = lines.length * lineHeight + padding * 2;
+    function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
-      canvas.width = PRINTER_WIDTH;
-      canvas.height = height;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, PRINTER_WIDTH, height);
-      ctx.fillStyle = '#000000';
-      ctx.font = '16px monospace';
-      ctx.textBaseline = 'top';
-      lines.forEach(function(line, i) {
-        ctx.fillText(line, padding, padding + i * lineHeight);
-      });
-
-      var imgData = ctx.getImageData(0, 0, PRINTER_WIDTH, height);
-      var pixels = [];
-      for (var y = 0; y < height; y++) {
-        var row = [];
-        for (var x = 0; x < PRINTER_WIDTH; x++) {
-          var idx = (y * PRINTER_WIDTH + x) * 4;
-          var gray = imgData.data[idx] * 0.299 + imgData.data[idx+1] * 0.587 + imgData.data[idx+2] * 0.114;
-          row.push(gray < 128);
-        }
-        pixels.push(row);
-      }
-      return pixels;
-    }
-
-    function buildPrintJob(pixels) {
-      var height = pixels.length;
-      var width = pixels[0].length;
-      var widthBytes = Math.ceil(width / 8);
-      var bitmap = new Uint8Array(widthBytes * height);
-
-      for (var y = 0; y < height; y++) {
-        for (var x = 0; x < width; x++) {
-          if (pixels[y][x]) {
-            bitmap[y * widthBytes + (x >> 3)] |= 1 << (7 - (x & 7));
-          }
-        }
-      }
-
-      var header = new Uint8Array([
-        0x1d, 0x76, 0x30, 0x00,
-        widthBytes & 0xff, (widthBytes >> 8) & 0xff,
-        height & 0xff, (height >> 8) & 0xff
-      ]);
-
-      var init = new Uint8Array([0x1b, 0x40]);
-      var feed = new Uint8Array([0x1b, 0x64, 0x04]);
-      var lf = new Uint8Array([0x0a, 0x0a, 0x0a]);
-
-      var total = init.length + header.length + bitmap.length + feed.length + lf.length;
-      var job = new Uint8Array(total);
-      var pos = 0;
-      job.set(init, pos); pos += init.length;
-      job.set(header, pos); pos += header.length;
-      job.set(bitmap, pos); pos += bitmap.length;
-      job.set(feed, pos); pos += feed.length;
-      job.set(lf, pos);
-
-      return job;
-    }
-
-    function sleep(ms) {
-      return new Promise(function(r) { setTimeout(r, ms); });
-    }
-
-    addLog('Приложение загружено (v2 - ISSC/ESC-POS)');
+    addLog('Приложение загружено (v3)');
     addLog('Web Bluetooth: ' + (navigator.bluetooth ? 'ДА' : 'НЕТ'));
+    updatePreview();
     if (!navigator.bluetooth) {
       showToast('Web Bluetooth не поддерживается', 'error', 5000);
       btnScan.disabled = true;
