@@ -158,23 +158,23 @@
     function removeItem(b){var l=document.getElementById('itemsList');if(l.children.length>1)b.parentElement.remove()}
     function getItems(){var items=[];document.querySelectorAll('#itemsList .item-row').forEach(function(r){var i=r.querySelectorAll('input');var n=i[0].value.trim(),q=parseInt(i[1].value)||1;if(n)items.push({name:n,qty:q})});return items}
     function bigNum(n){
-      var digits={
-        '0':[' ███ ','█   █','█   █','█   █',' ███ '],
-        '1':['  █  ','  █  ','  █  ','  █  ','  █  '],
-        '2':[' ███ ','    █',' ███ ','█    ','█████'],
-        '3':[' ███ ','    █',' ███ ','    █',' ███ '],
-        '4':['█   █','█   █','█████','    █','    █'],
-        '5':['█████','█    ','████ ','    █','████ '],
-        '6':[' ███ ','█    ','████ ','█   █',' ███ '],
-        '7':['█████','    █','   █ ','  █  ','  █  '],
-        '8':[' ███ ','█   █',' ███ ','█   █',' ███ '],
-        '9':[' ███ ','█   █',' ███ ','    █',' ███ ']
+      var d={
+        '0':[' #### ','##  ##','##  ##','##  ##',' #### '],
+        '1':['  ##  ','  ##  ','  ##  ','  ##  ','  ##  '],
+        '2':[' #### ','    ##',' #### ','##    ','######'],
+        '3':[' #### ','    ##',' #### ','    ##',' #### '],
+        '4':['##  ##','##  ##','######','    ##','    ##'],
+        '5':['######','##    ','##### ','    ##','##### '],
+        '6':[' #### ','##    ','##### ','##  ##',' #### '],
+        '7':['######','    ##','   ## ','  ##  ','  ##  '],
+        '8':[' #### ','##  ##',' #### ','##  ##',' #### '],
+        '9':[' #### ','##  ##',' #### ','    ##',' #### ']
       };
       var s=String(n).split('');
       var lines=['','','','',''];
-      s.forEach(function(d){
-        var g=digits[d]||digits['0'];
-        for(var i=0;i<5;i++)lines[i]+=' '+g[i]+' ';
+      s.forEach(function(c){
+        var g=d[c]||d['0'];
+        for(var i=0;i<5;i++)lines[i]+=g[i]+' ';
       });
       return lines;
     }
@@ -195,22 +195,18 @@
 
       var big=bigNum(num);
       big.forEach(function(l){t+=l+'\n'});
-      t+='\n';
-
-      t+=sep+'\n\n';
+      t+='\n'+sep+'\n\n';
 
       items.forEach(function(it){
         t+=it.qty+'x '+it.name+'\n';
         t+=nl(ig);
       });
 
-      t+=sep+'\n\n';
-      t+='Время: '+ts+'\n';
-      t+='Дата:  '+ds+'\n\n';
+      t+=ds+' '+ts+'\n';
       t+=sep+'\n';
 
-      if(custom)t+='\n'+custom+'\n\n'+sep+'\n';
-      t+='\n     Спасибо!\n'+nl(fd);
+      if(custom)t+='\n'+custom+'\n\n';
+      t+=nl(fd);
       return t;
     }
 
