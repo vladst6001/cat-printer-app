@@ -148,6 +148,7 @@
     </div>
 
     <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>Напечатать чек</button>
+    <button class="btn btn-danger" id="btnTestText" onclick="printTextTest()" disabled style="font-size:13px;padding:10px">Тестовый текст (ESC/POS)</button>
 
     <div class="section-label">Лог</div>
     <div class="log-box" id="logBox"></div>
@@ -199,6 +200,7 @@
       statusText.textContent = connected ? 'Подключён' : 'Не подключён';
       printerNameEl.textContent = name || '';
       btnPrint.disabled = !connected;
+      document.getElementById('btnTestText').disabled = !connected;
       btnDisconnect.style.display = connected ? 'block' : 'none';
     }
 
@@ -497,7 +499,7 @@
         addLog('Print job: ' + job.length + ' bytes (' + bitmap.length + ' bitmap)');
 
         await sendRaw(job);
-        await sleep(2000);
+        await sleep(1500);
 
         addLog('Печать завершена!', 'success');
         showToast('✅ Напечатано!', 'success');
@@ -506,6 +508,57 @@
         showToast('❌ ' + err.message, 'error');
       } finally {
         setTimeout(function() { btnPrint.disabled = false; }, 3000);
+      }
+    }
+
+    async function printTextTest() {
+      if (!device || !device.gatt.connected) {
+        showToast('Не подключён', 'error');
+        return;
+      }
+      addLog('=== ТЕСТ ТЕКСТА ===', 'success');
+      document.getElementById('btnTestText').disabled = true;
+
+      try {
+        var encoder = new TextEncoder();
+        var text =
+          '================================\n' +
+          '       ТЕСТОВЫЙ ПРИНТ\n' +
+          '================================\n' +
+          '\n' +
+          '  Привет из Cat Printer!\n' +
+          '  Дата: ' + new Date().toLocaleDateString('ru-RU') + '\n' +
+          '  Время: ' + new Date().toLocaleTimeString('ru-RU') + '\n' +
+          '\n' +
+          '  Шаурма классическая   8.50\n' +
+          '  Чипсы из лаваша       3.00\n' +
+          '\n' +
+          '  ИТОГО:               11.50\n' +
+          '\n' +
+          '================================\n' +
+          '\n\n\n\n';
+
+        var initCmd = new Uint8Array([0x1b, 0x40]);
+        var textData = encoder.encode(text);
+        var cutCmd = new Uint8Array([0x1b, 0x64, 0x05]);
+
+        var total = initCmd.length + textData.length + cutCmd.length;
+        var job = new Uint8Array(total);
+        var pos = 0;
+        job.set(initCmd, pos); pos += initCmd.length;
+        job.set(textData, pos); pos += textData.length;
+        job.set(cutCmd, pos);
+
+        addLog('Text job: ' + job.length + ' bytes');
+        await sendRaw(job);
+        await sleep(2000);
+        addLog('Текст отправлен!', 'success');
+        showToast('✅ Текст отправлен!', 'success');
+      } catch (err) {
+        addLog('Ошибка: ' + err.message, 'error');
+        showToast('❌ ' + err.message, 'error');
+      } finally {
+        setTimeout(function() { document.getElementById('btnTestText').disabled = false; }, 3000);
       }
     }
 
