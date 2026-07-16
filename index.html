@@ -20,7 +20,6 @@
     .btn-primary{background:#2563eb;color:#fff}
     .btn-print{background:#16a34a;color:#fff}
     .btn-disconnect{background:#991b1b;color:#fff;font-size:13px;padding:10px}
-    .btn-danger{background:#dc2626;color:#fff;font-size:13px;padding:10px}
     .btn:disabled{background:#333;color:#666;cursor:not-allowed;transform:none}
     .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -39,7 +38,7 @@
     .item-remove:hover{color:#f87171}
     .add-item-btn{background:none;border:1px dashed #444;border-radius:8px;color:#666;padding:8px;cursor:pointer;font-size:14px;text-align:center}
     .add-item-btn:hover{border-color:#2563eb;color:#2563eb}
-    .log-box{background:#111;border:1px solid #222;border-radius:8px;padding:10px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;color:#888;line-height:1.5}
+    .log-box{background:#111;border:1px solid #222;border-radius:8px;padding:10px;max-height:250px;overflow-y:auto;font-family:monospace;font-size:11px;color:#888;line-height:1.5}
     .log-entry{white-space:pre-wrap;word-break:break-all}
     .log-entry.error{color:#f87171}
     .log-entry.success{color:#4ade80}
@@ -53,7 +52,7 @@
 </head>
 <body>
   <div class="app">
-    <div class="header">Cat Printer Test v7</div>
+    <div class="header">Cat Printer Test</div>
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
       <span class="status-text" id="statusText">Не подключён</span>
@@ -89,7 +88,6 @@
     </div>
 
     <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>Напечатать чек</button>
-    <button class="btn btn-danger" id="btnTest" onclick="runTest()" disabled style="font-size:13px;padding:10px">Тест: все characteristics</button>
 
     <div class="section-label">Лог</div>
     <div class="log-box" id="logBox"></div>
@@ -97,33 +95,36 @@
   <div class="toast toast-info" id="toast"></div>
 
   <script>
-    var ISSC_SVC='49535343-fe7d-4ae5-8fa9-9fafd205e455';
-    var ISSC_RX='49535343-1e4d-4bd9-ba61-23c647249616';
-    var ISSC_C1='49535343-6daa-4d02-abf6-19569aca69fe';
-    var ISSC_C2='49535343-8841-43f4-a8d4-ecbe34729bb3';
-    var ISSC_C3='49535343-aca3-481c-91ec-d85e28a60318';
+    var SVC='49535343-fe7d-4ae5-8fa9-9fafd205e455';
+    var TX='49535343-8841-43f4-a8d4-ecbe34729bb3';
+    var RX='49535343-1e4d-4bd9-ba61-23c647249616';
+    var W=384;
+    var CHUNK=100;
+    var CHUNK_DELAY=20;
+    var LINE_DELAY=8;
+    var INIT_DELAY=150;
+    var THRESHOLD=200;
 
-    var device=null,allChars=[];
+    var device=null,txChar=null;
     var toastEl=document.getElementById('toast'),logBox=document.getElementById('logBox');
 
     function showToast(m,t,d){t=t||'info';d=d||3000;toastEl.textContent=m;toastEl.className='toast toast-'+t+' show';setTimeout(function(){toastEl.classList.remove('show')},d)}
     function log(m,c){var ts=new Date().toLocaleTimeString();var div=document.createElement('div');div.className='log-entry'+(c?' '+c:'');div.textContent='['+ts+'] '+m;logBox.appendChild(div);logBox.scrollTop=logBox.scrollHeight}
-    function setStatus(ok,name){document.getElementById('statusDot').className=ok?'status-dot connected':'status-dot';document.getElementById('statusText').textContent=ok?'Подключён':'Не подключён';document.getElementById('printerName').textContent=name||'';document.getElementById('btnPrint').disabled=!ok;document.getElementById('btnTest').disabled=!ok;document.getElementById('btnDisconnect').style.display=ok?'block':'none'}
-    function disconnectPrinter(){if(device&&device.gatt.connected)device.gatt.disconnect();device=null;allChars=[];setStatus(false);log('Отключено','error')}
+    function setStatus(ok,name){document.getElementById('statusDot').className=ok?'status-dot connected':'status-dot';document.getElementById('statusText').textContent=ok?'Подключён':'Не подключён';document.getElementById('printerName').textContent=name||'';document.getElementById('btnPrint').disabled=!ok;document.getElementById('btnDisconnect').style.display=ok?'block':'none'}
+    function disconnectPrinter(){if(device&&device.gatt.connected)device.gatt.disconnect();device=null;txChar=null;setStatus(false);log('Отключено','error')}
     function addItem(){var l=document.getElementById('itemsList');var r=document.createElement('div');r.className='item-row';r.innerHTML='<input type="text" placeholder="Название"><input type="number" value="1" min="1"><input type="number" value="0.00" min="0" step="0.01"><button class="item-remove" onclick="removeItem(this)">&times;</button>';l.appendChild(r)}
     function removeItem(b){var l=document.getElementById('itemsList');if(l.children.length>1)b.parentElement.remove()}
     function getItems(){var items=[];document.querySelectorAll('#itemsList .item-row').forEach(function(r){var i=r.querySelectorAll('input');var n=i[0].value.trim(),q=parseInt(i[1].value)||1,p=parseFloat(i[2].value)||0;if(n)items.push({name:n,qty:q,price:p})});return items}
     function genText(){var shop=(document.getElementById('shopName').value||'МАГАЗИН').toUpperCase(),custom=document.getElementById('customText').value.trim(),items=getItems(),num=Math.floor(Math.random()*9000)+1000,now=new Date(),ds=now.toLocaleDateString('ru-RU'),ts=now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),total=0;items.forEach(function(it){total+=it.qty*it.price});var sep='================================';var t=sep+'\n\n  '+shop+'\n\n'+sep+'\n\n  ЗАКАЗ #'+num+'\n  '+ds+'  '+ts+'\n\n--------------------------------\n';items.forEach(function(it){t+='\n  '+it.name+'\n    '+it.qty+' x '+it.price.toFixed(2)+' = '+(it.qty*it.price).toFixed(2)+'\n'});t+='\n--------------------------------\n\n  ИТОГО:  '+total.toFixed(2)+' руб.\n\n'+sep+'\n';if(custom)t+='\n'+custom+'\n\n'+sep+'\n';t+='\n       Спасибо!\n\n\n\n';return t}
-    function crc8(d){var c=0;for(var i=0;i<d.length;i++){c^=d[i];for(var j=0;j<8;j++)c=(c&128)?((c<<1)^7)&255:(c<<1)&255}return c}
-    function catCmd(cmd,payload){var m=new Uint8Array(6+payload.length+2);m[0]=0x51;m[1]=0x78;m[2]=cmd;m[3]=0x00;m[4]=payload.length;m[5]=0x00;m.set(payload,6);m[6+payload.length]=crc8(payload);m[6+payload.length+1]=0xFF;return m}
-    function revBits(b){var r=0;for(var i=0;i<8;i++)r|=(((b>>i)&1)<<(7-i));return r}
+
+    function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
     async function startScan(){
       log('Сканирование...','success');
       document.getElementById('btnScan').disabled=true;
       document.getElementById('btnScan').innerHTML='<span class="spinner"></span> Поиск...';
       try{
-        var d=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'YHK'}],optionalServices:[ISSC_SVC,'0000ae00-0000-1000-8000-00805f9b34fb']});
+        var d=await navigator.bluetooth.requestDevice({filters:[{services:[SVC]}]});
         log('Найдено: '+d.name,'success');
         await doConnect(d);
       }catch(e){log('Ошибка: '+e.message,'error');showToast(e.message,'error')}
@@ -134,135 +135,82 @@
       log('Подключение...');showToast('Подключение...','info');
       try{
         var gatt=await d.gatt.connect();log('GATT OK');
-        var svcs=await gatt.getPrimaryServices();log('Сервисов: '+svcs.length);
-        allChars=[];
-        for(var i=0;i<svcs.length;i++){
-          var s=svcs[i];log('  SVC: '+s.uuid.substring(0,12),'warn');
-          var chars=await s.getCharacteristics();
-          for(var j=0;j<chars.length;j++){
-            var c=chars[j],p=[];
-            if(c.properties.read)p.push('R');
-            if(c.properties.write)p.push('W');
-            if(c.properties.writeWithoutResponse)p.push('Wn');
-            if(c.properties.notify)p.push('N');
-            log('    CHR: '+c.uuid.substring(0,12)+' ['+p.join(' ')+']','warn');
-            allChars.push(c);
-          }
-        }
-        for(var i=0;i<allChars.length;i++){
-          if(allChars[i].uuid===ISSC_RX){
-            try{await allChars[i].startNotifications();allChars[i].addEventListener('characteristicvaluechanged',function(e){var v=new Uint8Array(e.target.value.buffer);log('RX: '+Array.from(v).map(function(b){return b.toString(16).padStart(2,'0')}).join(' '))});log('Notify OK','success')}catch(e){}
-          }
-        }
-        d.addEventListener('gattserverdisconnected',function(){log('Отключено','error');device=null;allChars=[];setStatus(false)});
+        var svc=await gatt.getPrimaryService(SVC);log('ISSC OK','success');
+        txChar=await svc.getCharacteristic(TX);log('TX OK','success');
+        try{var rx=await svc.getCharacteristic(RX);await rx.startNotifications();rx.addEventListener('characteristicvaluechanged',function(e){var v=new Uint8Array(e.target.value.buffer);log('RX: '+Array.from(v).map(function(b){return b.toString(16).padStart(2,'0')}).join(' '))});log('Notify OK','success')}catch(e){}
+        d.addEventListener('gattserverdisconnected',function(){log('Отключено','error');device=null;txChar=null;setStatus(false)});
         device=d;setStatus(true,d.name);showToast('Подключён!','success');
       }catch(e){log('Ошибка: '+e.message,'error');showToast(e.message,'error');setStatus(false)}
     }
 
-    async function runTest(){
-      if(!device||!device.gatt.connected){showToast('Не подключён','error');return}
-      log('=== ТЕСТ ВСЕХ CHARACTERISTICS ===','success');
-      document.getElementById('btnTest').disabled=true;
-
-      var wChars=allChars.filter(function(c){return c.properties.write||c.properties.writeWithoutResponse});
-      log('Write chars: '+wChars.length);
-
-      var testMsg=new TextEncoder().encode('HELLO\n');
-      var initCmd=new Uint8Array([0x1B,0x40]);
-      var catInit=new Uint8Array([0x1B,0x40]);
-      var catData=catCmd(0xA2,new Uint8Array(48));
-
-      for(var ci=0;ci<wChars.length;ci++){
-        var ch=wChars[ci];
-        var shortId=ch.uuid.substring(9,17);
-        log('--- Char: ...'+shortId+' ---','warn');
-
-        try{
-          log('  1) writeValue init');
-          await ch.writeValue(initCmd);
-          await sleep(50);
-          log('  2) writeValue text');
-          await ch.writeValue(testMsg);
-          await sleep(50);
-          log('  3) writeValue lf');
-          await ch.writeValue(new Uint8Array([0x0A,0x0A,0x0A]));
-          log('  writeValue OK','success');
-        }catch(e){log('  writeValue ERR: '+e.message,'error')}
-
-        await sleep(3000);
-
-        try{
-          log('  4) writeNoRsp init');
-          await ch.writeValueWithoutResponse(initCmd);
-          await sleep(50);
-          log('  5) writeNoRsp text');
-          await ch.writeValueWithoutResponse(testMsg);
-          await sleep(50);
-          log('  6) writeNoRsp lf');
-          await ch.writeValueWithoutResponse(new Uint8Array([0x0A,0x0A,0x0A]));
-          log('  writeNoRsp OK','success');
-        }catch(e){log('  writeNoRsp ERR: '+e.message,'error')}
-
-        await sleep(3000);
+    async function sendChunked(data){
+      for(var off=0;off<data.length;off+=CHUNK){
+        var end=Math.min(off+CHUNK,data.length);
+        await txChar.writeValueWithoutResponse(data.slice(off,end));
+        if(off+CHUNK<data.length)await sleep(CHUNK_DELAY);
       }
-
-      log('=== КОНЕЦ ТЕСТА ===','success');
-      log('Проверьте: что напечатал принтер?');
-      showToast('Тест завершён!','success');
-      setTimeout(function(){document.getElementById('btnTest').disabled=false},2000);
     }
 
     async function printReceipt(){
       if(!device||!device.gatt.connected){showToast('Не подключён','error');return}
       log('=== ПЕЧАТЬ ===','success');
       document.getElementById('btnPrint').disabled=true;
-      showToast('⏳ Печатается...','info',5000);
+      showToast('⏳ Печатается...','info',10000);
       try{
         var text=genText();
-        log('Текст: '+text.length+' символов');
-        log(text.substring(0,150)+'...');
+        log('Генерация canvas...');
 
-        var cv=document.createElement('canvas');cv.width=384;
-        var ls=text.split('\n'),lh=24;cv.height=ls.length*lh;
-        var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,384,cv.height);
+        var ls=text.split('\n'),lh=24;
+        var cv=document.createElement('canvas');cv.width=W;cv.height=ls.length*lh;
+        var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,W,cv.height);
         cx.fillStyle='#000';cx.font='18px monospace';cx.textBaseline='top';
         ls.forEach(function(l,i){cx.fillText(l,8,i*lh+4)});
-        var img=cx.getImageData(0,0,384,cv.height);
-        var wb=Math.ceil(384/8),h=cv.height;
 
-        var cmds=[];
-        cmds.push(new Uint8Array([0x1B,0x40]));
-        for(var y=0;y<h;y++){
-          var row=new Uint8Array(wb);
-          for(var x=0;x<384;x++){var idx=(y*384+x)*4;if(img.data[idx]<128)row[Math.floor(x/8)]|=(1<<(7-(x%8)))}
-          for(var b=0;b<wb;b++)row[b]=revBits(row[b]);
-          cmds.push(catCmd(0xA2,row));
+        log('Конвертация в bitmap...');
+        var imgData=cx.getImageData(0,0,W,cv.height);
+        var widthBytes=W/8;
+        var totalLines=cv.height;
+        log('Размер: '+W+'x'+totalLines+', '+widthBytes+' байт/строка');
+
+        log('Init...');
+        await sendChunked(new Uint8Array([0x1b,0x40]));
+        await sleep(INIT_DELAY);
+
+        log('Отправка '+totalLines+' строк bitmap...');
+        for(var y=0;y<totalLines;y++){
+          var line=new Uint8Array(widthBytes);
+          for(var byteIdx=0;byteIdx<widthBytes;byteIdx++){
+            var b=0;
+            for(var bit=0;bit<8;bit++){
+              var x=byteIdx*8+bit;
+              if(x>=W)continue;
+              var pIdx=(y*W+x)*4;
+              var gray=imgData.data[pIdx]*0.299+imgData.data[pIdx+1]*0.587+imgData.data[pIdx+2]*0.114;
+              if(gray<THRESHOLD)b|=0x80>>bit;
+            }
+            line[byteIdx]=b;
+          }
+
+          var header=new Uint8Array([0x1d,0x76,0x30,0x00,widthBytes&0xff,(widthBytes>>8)&0xff,0x01,0x00]);
+          var pkt=new Uint8Array(header.length+line.length);
+          pkt.set(header);pkt.set(line,header.length);
+          await sendChunked(pkt);
+          await sleep(LINE_DELAY);
+
+          if(y%100===0)log('  '+y+'/'+totalLines);
         }
-        cmds.push(catCmd(0xA1,new Uint8Array([0x80,0x00])));
-        cmds.push(new Uint8Array([0x0A,0x0A,0x0A,0x0A]));
 
-        var wChars=allChars.filter(function(c){return c.properties.writeWithoutResponse});
-        if(wChars.length===0)wChars=allChars.filter(function(c){return c.properties.write});
+        log('Feed...');
+        var feed=new Uint8Array(4);feed.fill(0x0a);
+        await sendChunked(feed);
 
-        log('Берём первый write char для отправки');
-        var ch=wChars[0];
-        if(!ch){throw new Error('Нет write char')}
-
-        log('Команд: '+cmds.length);
-        for(var i=0;i<cmds.length;i++){
-          try{await ch.writeValueWithoutResponse(cmds[i])}
-          catch(e){await ch.writeValue(cmds[i])}
-          if(i%100===0&&i>0)log('  '+i+'/'+cmds.length);
-        }
         await sleep(2000);
-        log('Готово!','success');showToast('✅ Отправлено!','success');
+        log('Готово!','success');showToast('✅ Напечатано!','success');
       }catch(e){log('Ошибка: '+e.message,'error');showToast('❌ '+e.message,'error')}
       finally{setTimeout(function(){document.getElementById('btnPrint').disabled=false},3000)}
     }
 
-    function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
-
-    log('v7 загружено');
+    log('v8 загружено (userDKX protocol)');
     log('Web Bluetooth: '+(navigator.bluetooth?'ДА':'НЕТ'));
     if(!navigator.bluetooth){showToast('Web Bluetooth не поддерживается','error',5000);document.getElementById('btnScan').disabled=true}
   </script>
