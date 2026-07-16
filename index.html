@@ -396,7 +396,20 @@
           await rxChar.startNotifications();
           rxChar.addEventListener('characteristicvaluechanged', function(e) {
             var val = new Uint8Array(e.target.value.buffer);
-            addLog('RX: ' + Array.from(val).map(function(b) { return b.toString(16).padStart(2,'0'); }).join(' '));
+            var hex = Array.from(val).map(function(b) { return b.toString(16).padStart(2,'0'); }).join(' ');
+            addLog('RX: ' + hex);
+
+            if (val.length >= 4 && val[0] === 0x65 && val[1] === 0x72 && val[2] === 0x72 && val[3] === 0x3a) {
+              var statusByte = val.length > 4 ? val[4] : -1;
+              if (statusByte === 0x02) {
+                addLog('⚠ КРЫШКА ОТКРЫТА', 'warn');
+                showToast('⚠ Крышка принтера открыта!', 'info', 4000);
+              } else if (statusByte === 0x00) {
+                addLog('✓ Крышка закрыта', 'success');
+              } else {
+                addLog('Статус: 0x' + statusByte.toString(16).padStart(2,'0'), 'warn');
+              }
+            }
           });
           addLog('Notify OK', 'success');
         } catch(e) {
