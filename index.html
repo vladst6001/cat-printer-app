@@ -160,11 +160,11 @@
         var text=genText();
         log('Генерация canvas...');
 
-        var ls=text.split('\n'),lh=24;
+        var ls=text.split('\n'),lh=30;
         var cv=document.createElement('canvas');cv.width=W;cv.height=ls.length*lh;
         var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,W,cv.height);
-        cx.fillStyle='#000';cx.font='18px monospace';cx.textBaseline='top';
-        ls.forEach(function(l,i){cx.fillText(l,8,i*lh+4)});
+        cx.fillStyle='#000';cx.font='24px monospace';cx.textBaseline='top';
+        ls.forEach(function(l,i){cx.fillText(l,4,i*lh+4)});
 
         log('Конвертация в bitmap...');
         var imgData=cx.getImageData(0,0,W,cv.height);
@@ -201,7 +201,7 @@
         }
 
         log('Feed...');
-        var feed=new Uint8Array(4);feed.fill(0x0a);
+        var feed=new Uint8Array(2);feed.fill(0x0a);
         await sendChunked(feed);
 
         await sleep(2000);
