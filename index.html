@@ -453,31 +453,71 @@
         showToast('Не подключён', 'error');
         return;
       }
-      addLog('=== ПЕЧАТЬ ЧЕКА (ТЕКСТ) ===', 'success');
+      addLog('=== ПЕЧАТЬ ЧЕКА ===', 'success');
       btnPrint.disabled = true;
       showToast('⏳ Печатается...', 'info', 5000);
 
       try {
+        var orderNum = Math.floor(Math.random() * 9000) + 1000;
+        var now = new Date();
+        var dateStr = now.toLocaleDateString('ru-RU');
+        var timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        var shopName = (document.getElementById('shopName').value || 'МАГАЗИН').toUpperCase();
+        var customText = document.getElementById('customText').value.trim();
+        var items = getItems();
+        var total = 0;
+        items.forEach(function(it) { total += it.qty * it.price; });
+
+        var sep = '================================';
+
+        var text = sep + '\n' +
+          '\n' +
+          '         ' + shopName + '\n' +
+          '\n' +
+          sep + '\n' +
+          '\n' +
+          '  ЗАКАЗ #' + orderNum + '\n' +
+          '  ' + dateStr + '  ' + timeStr + '\n' +
+          '\n' +
+          '--------------------------------\n';
+
+        items.forEach(function(it) {
+          var s = it.qty * it.price;
+          text += '\n  ' + it.name + '\n';
+          text += '    ' + it.qty + ' x ' + it.price.toFixed(2) + ' = ' + s.toFixed(2) + '\n';
+        });
+
+        text += '\n--------------------------------\n' +
+          '\n' +
+          '  ИТОГО:  ' + total.toFixed(2) + ' руб.\n' +
+          '\n' +
+          sep + '\n';
+
+        if (customText) {
+          text += '\n' + customText + '\n\n' + sep + '\n';
+        }
+
+        text += '\n         Спасибо!\n\n\n\n';
+
+        addLog('Текст чека (' + text.length + ' символов):');
+        addLog(text);
+
         var encoder = new TextEncoder();
-        var lines = generateReceiptLines();
-        var receipt = lines.join('\n') + '\n\n\n\n';
-
         var initCmd = new Uint8Array([0x1b, 0x40]);
-        var textData = encoder.encode(receipt);
-        var cutCmd = new Uint8Array([0x1b, 0x64, 0x05]);
+        var textData = encoder.encode(text);
+        var feedCmd = new Uint8Array([0x1b, 0x64, 0x05]);
 
-        var total = initCmd.length + textData.length + cutCmd.length;
-        var job = new Uint8Array(total);
+        var job = new Uint8Array(initCmd.length + textData.length + feedCmd.length);
         var pos = 0;
         job.set(initCmd, pos); pos += initCmd.length;
         job.set(textData, pos); pos += textData.length;
-        job.set(cutCmd, pos);
+        job.set(feedCmd, pos);
 
-        addLog('Чек: ' + job.length + ' байт, ' + lines.length + ' строк');
+        addLog('Отправка: ' + job.length + ' байт');
         await sendRaw(job);
         await sleep(2000);
 
-        addLog('Печать завершена!', 'success');
+        addLog('Готово!', 'success');
         showToast('✅ Напечатано!', 'success');
       } catch (err) {
         addLog('Ошибка: ' + err.message, 'error');
