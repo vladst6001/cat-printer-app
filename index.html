@@ -91,19 +91,29 @@
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <div class="input-group" style="flex:1;min-width:100px">
         <label>Размер шрифта</label>
-        <input type="range" id="fontSize" min="14" max="32" value="24" oninput="document.getElementById('fontSizeVal').textContent=this.value+'px'">
+        <input type="range" id="fontSize" min="14" max="36" value="24" oninput="updPreview()">
         <span id="fontSizeVal" style="text-align:center;color:#888;font-size:13px">24px</span>
       </div>
       <div class="input-group" style="flex:1;min-width:100px">
-        <label>Отступ снизу (строк)</label>
-        <input type="range" id="feedLines" min="0" max="10" value="2" oninput="document.getElementById('feedVal').textContent=this.value">
+        <label>Отступ снизу</label>
+        <input type="range" id="feedLines" min="0" max="10" value="2" oninput="updPreview()">
         <span id="feedVal" style="text-align:center;color:#888;font-size:13px">2</span>
       </div>
       <div class="input-group" style="flex:1;min-width:100px">
-        <label>Отступ между позициями</label>
-        <input type="range" id="itemSpacing" min="1" max="5" value="2" oninput="document.getElementById('itemSpaceVal').textContent=this.value">
+        <label>Межстрочный</label>
+        <input type="range" id="lineSpacing" min="0" max="10" value="2" oninput="updPreview()">
+        <span id="lineSpaceVal" style="text-align:center;color:#888;font-size:13px">2</span>
+      </div>
+      <div class="input-group" style="flex:1;min-width:100px">
+        <label>Позиции: отступ</label>
+        <input type="range" id="itemSpacing" min="1" max="5" value="2" oninput="updPreview()">
         <span id="itemSpaceVal" style="text-align:center;color:#888;font-size:13px">2</span>
       </div>
+    </div>
+
+    <div class="section-label">Предпросмотр чека</div>
+    <div style="background:#fff;border-radius:8px;padding:8px;overflow-x:auto;max-height:500px;overflow-y:auto">
+      <canvas id="previewCanvas"></canvas>
     </div>
 
     <button class="btn btn-print" id="btnPrint" onclick="printReceipt()" disabled>Напечатать чек</button>
@@ -156,6 +166,39 @@
       for(var i=0;i<feedN;i++)t+='\n';
       return t;
     }
+
+    function updPreview(){
+      var fs=parseInt(document.getElementById('fontSize').value)||24;
+      var ls=parseInt(document.getElementById('lineSpacing').value)||0;
+      var fd=parseInt(document.getElementById('feedLines').value)||0;
+      var is=parseInt(document.getElementById('itemSpacing').value)||2;
+
+      document.getElementById('fontSizeVal').textContent=fs+'px';
+      document.getElementById('feedVal').textContent=fd;
+      document.getElementById('lineSpaceVal').textContent=ls;
+      document.getElementById('itemSpaceVal').textContent=is;
+
+      var text=genText();
+      var lines=text.split('\n');
+      var lh=Math.round(fs*1.25);
+      var lhExtra=lh+ls;
+      var totalH=lines.length*lhExtra+ls*fs;
+
+      var cv=document.getElementById('previewCanvas');
+      cv.width=W;cv.height=totalH;
+      var cx=cv.getContext('2d');
+      cx.fillStyle='#fff';cx.fillRect(0,0,W,totalH);
+      cx.fillStyle='#000';
+      cx.font=fs+'px monospace';
+      cx.textBaseline='top';
+      lines.forEach(function(l,i){cx.fillText(l,4,i*lhExtra+4)});
+    }
+
+    document.getElementById('shopName').addEventListener('input',updPreview);
+    document.getElementById('customText').addEventListener('input',updPreview);
+    document.getElementById('itemsList').addEventListener('input',updPreview);
+
+    setTimeout(updPreview,100);
 
     function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
