@@ -3,63 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Cat Printer Test</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
+  <title>Cat Printer Test</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #fff;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 20px;
+      background: #0a0a0a; color: #fff; min-height: 100vh;
+      display: flex; justify-content: center; padding: 20px;
     }
-    .app {
-      width: 100%;
-      max-width: 420px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding-top: 30px;
-    }
-    .header {
-      text-align: center;
-      font-size: 14px;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
+    .app { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; padding-top: 30px; }
+    .header { text-align: center; font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 2px; }
     .status-bar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      background: #141414;
-      border-radius: 12px;
-      border: 1px solid #222;
+      display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+      background: #141414; border-radius: 12px; border: 1px solid #222;
     }
     .status-dot {
       width: 12px; height: 12px; border-radius: 50%;
       background: #ff3b30; flex-shrink: 0; transition: background 0.3s;
     }
-    .status-dot.connected {
-      background: #34c759;
-      box-shadow: 0 0 8px rgba(52,199,89,0.5);
-    }
+    .status-dot.connected { background: #34c759; box-shadow: 0 0 8px rgba(52,199,89,0.5); }
     .status-text { font-size: 15px; font-weight: 500; }
-    .printer-name {
-      margin-left: auto; font-size: 13px; color: #666;
-      max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    .printer-name { margin-left: auto; font-size: 13px; color: #666; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .btn {
       width: 100%; padding: 18px; border: none; border-radius: 12px;
-      font-size: 17px; font-weight: 600; cursor: pointer;
-      transition: all 0.2s; display: flex; align-items: center;
-      justify-content: center; gap: 8px;
+      font-size: 17px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn:active { transform: scale(0.97); }
     .btn-primary { background: #2563eb; color: #fff; }
@@ -114,29 +83,15 @@
   <canvas id="receiptCanvas" style="display:none"></canvas>
 
   <script>
-    var ALL_SERVICES = [
-      '0000fee7-0000-1000-8000-00805f9b34fb',
-      '0000fee0-0000-1000-8000-00805f9b34fb',
-      '0000fee1-0000-1000-8000-00805f9b34fb',
-      '0000fee2-0000-1000-8000-00805f9b34fb',
-      '0000fee8-0000-1000-8000-00805f9b34fb',
-      '0000fee9-0000-1000-8000-00805f9b34fb',
-      '0000ffee-0000-1000-8000-00805f9b34fb',
-      '0000fff0-0000-1000-8000-00805f9b34fb',
-      '0000fff1-0000-1000-8000-00805f9b34fb',
-      '0000ffe0-0000-1000-8000-00805f9b34fb',
-      '0000ffe1-0000-1000-8000-00805f9b34fb',
-      '0000ffd0-0000-1000-8000-00805f9b34fb',
-      '0000ae00-0000-1000-8000-00805f9b34fb',
-      '0000af00-0000-1000-8000-00805f9b34fb',
-      '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
-    ];
+    var ISSC_SERVICE = '49535343-fe7d-4ae5-8fa9-9fafd205e455';
+    var ISSC_TX = '49535343-8841-43f4-a8d4-ecbe34729bb3';
+    var ISSC_RX = '49535343-1e4d-4bd9-ba61-23c647249616';
+    var PRINTER_WIDTH = 384;
+    var BLE_CHUNK_SIZE = 182;
+    var BLE_CHUNK_DELAY = 40;
 
     var device = null;
-    var server = null;
-    var writeChar = null;
-    var notifyChar = null;
-    var printerService = null;
+    var txChar = null;
 
     var btnScan = document.getElementById('btnScan');
     var btnPrint = document.getElementById('btnPrint');
@@ -148,13 +103,12 @@
     var logBox = document.getElementById('logBox');
 
     var toastTimeout = null;
-    function showToast(msg, type, duration) {
-      type = type || 'info';
-      duration = duration || 3000;
+    function showToast(msg, type, dur) {
+      type = type || 'info'; dur = dur || 3000;
       clearTimeout(toastTimeout);
       toastEl.textContent = msg;
       toastEl.className = 'toast toast-' + type + ' show';
-      toastTimeout = setTimeout(function() { toastEl.classList.remove('show'); }, duration);
+      toastTimeout = setTimeout(function() { toastEl.classList.remove('show'); }, dur);
     }
 
     function addLog(msg, cls) {
@@ -177,21 +131,22 @@
 
     function disconnectPrinter() {
       if (device && device.gatt.connected) device.gatt.disconnect();
-      onDisconnect();
+      device = null; txChar = null;
+      setStatus(false);
+      addLog('Отключено', 'error');
     }
 
     async function startScan() {
-      addLog('Сканирование...', 'success');
+      addLog('Сканирование (фильтр: YHK*)...', 'success');
       btnScan.disabled = true;
       btnScan.innerHTML = '<span class="spinner"></span> Поиск...';
 
       try {
         var btDevice = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: ALL_SERVICES
+          filters: [{ namePrefix: 'YHK' }],
+          optionalServices: [ISSC_SERVICE]
         });
-
-        addLog('Выбрано: ' + (btDevice.name || 'Без имени'), 'success');
+        addLog('Найдено: ' + btDevice.name, 'success');
         await connectToDevice(btDevice);
       } catch (err) {
         addLog('Ошибка: ' + err.message, 'error');
@@ -203,120 +158,40 @@
     }
 
     async function connectToDevice(btDevice) {
-      addLog('Подключение к ' + (btDevice.name || btDevice.id) + '...');
+      addLog('Подключение к ' + btDevice.name + '...');
       showToast('Подключение...', 'info');
 
       try {
-        var retries = 5;
-        for (var attempt = 1; attempt <= retries; attempt++) {
-          try {
-            server = await btDevice.gatt.connect();
-            addLog('GATT OK (попытка ' + attempt + ')');
-            break;
-          } catch(e) {
-            addLog('GATT попытка ' + attempt + '/' + retries + ': ' + e.message, 'warn');
-            if (attempt === retries) throw e;
-            await sleep(1000);
-          }
-        }
+        var gatt = await btDevice.gatt.connect();
+        addLog('GATT OK');
 
-        writeChar = null;
-        notifyChar = null;
-        printerService = null;
+        var service = await gatt.getPrimaryService(ISSC_SERVICE);
+        addLog('ISSC сервис найден!', 'success');
 
-        addLog('Перебор всех сервисов...');
-        var services = [];
+        txChar = await service.getCharacteristic(ISSC_TX);
+        addLog('TX characteristic: ' + txChar.uuid, 'success');
+
         try {
-          services = await server.getPrimaryServices();
+          var rxChar = await service.getCharacteristic(ISSC_RX);
+          await rxChar.startNotifications();
+          rxChar.addEventListener('characteristicvaluechanged', function(e) {
+            var val = new Uint8Array(e.target.value.buffer);
+            addLog('RX: ' + Array.from(val).map(function(b) { return b.toString(16).padStart(2,'0'); }).join(' '));
+          });
+          addLog('Notify подписка OK', 'success');
         } catch(e) {
-          addLog('getPrimaryServices: ' + e.message, 'error');
+          addLog('Notify недоступен (не критично)', 'warn');
         }
 
-        addLog('Найдено сервисов: ' + services.length);
+        btDevice.addEventListener('gattserverdisconnected', function() {
+          addLog('Устройство отключено', 'error');
+          device = null; txChar = null; setStatus(false);
+        });
 
-        for (var i = 0; i < services.length; i++) {
-          var s = services[i];
-          addLog('Сервис: ' + s.uuid, 'warn');
-          try {
-            var chars = await s.getCharacteristics();
-            for (var j = 0; j < chars.length; j++) {
-              var c = chars[j];
-              var props = [];
-              if (c.properties.read) props.push('R');
-              if (c.properties.write) props.push('W');
-              if (c.properties.writeWithoutResponse) props.push('Wn');
-              if (c.properties.notify) props.push('N');
-              if (c.properties.indicate) props.push('I');
-              addLog('  Char: ' + c.uuid + ' [' + props.join(' ') + ']');
-
-              if ((c.properties.write || c.properties.writeWithoutResponse) && !writeChar) {
-                writeChar = c;
-                printerService = s;
-                addLog('  -> WRITE选定: ' + c.uuid, 'success');
-              }
-              if (c.properties.notify && !notifyChar) {
-                notifyChar = c;
-                addLog('  -> NOTIFY选定: ' + c.uuid, 'success');
-              }
-            }
-          } catch(e) {
-            addLog('  getCharacteristics ошибка: ' + e.message, 'error');
-          }
-        }
-
-        if (!writeChar) {
-          addLog('WRITE не найден! Пробуем все UUID вручную...', 'warn');
-          for (var k = 0; k < ALL_SERVICES.length; k++) {
-            try {
-              var s2 = await server.getPrimaryService(ALL_SERVICES[k]);
-              addLog('  Найден: ' + ALL_SERVICES[k], 'success');
-              var chars2 = await s2.getCharacteristics();
-              for (var j2 = 0; j2 < chars2.length; j2++) {
-                var c2 = chars2[j2];
-                var p2 = [];
-                if (c2.properties.write) p2.push('W');
-                if (c2.properties.writeWithoutResponse) p2.push('Wn');
-                if (c2.properties.notify) p2.push('N');
-                if (c2.properties.read) p2.push('R');
-                addLog('    Char: ' + c2.uuid + ' [' + p2.join(' ') + ']');
-
-                if ((c2.properties.write || c2.properties.writeWithoutResponse) && !writeChar) {
-                  writeChar = c2;
-                  printerService = s2;
-                  addLog('    -> WRITE选定: ' + c2.uuid, 'success');
-                }
-                if (c2.properties.notify && !notifyChar) {
-                  notifyChar = c2;
-                  addLog('    -> NOTIFY选定: ' + c2.uuid, 'success');
-                }
-              }
-            } catch(e2) { /* skip */ }
-          }
-        }
-
-        if (!writeChar) {
-          addLog('WRITE НЕ НАЙДЕН ни в одном сервисе!', 'error');
-          addLog('Скопируйте весь лог и отправьте разработчику', 'warn');
-          throw new Error('Write characteristic не найден. Проверьте лог.');
-        }
-
-        if (notifyChar) {
-          try {
-            await notifyChar.startNotifications();
-            notifyChar.addEventListener('characteristicvaluechanged', onNotify);
-            addLog('Notify подписка OK', 'success');
-          } catch(e) {
-            addLog('Notify ошибка: ' + e.message, 'error');
-          }
-        }
-
-        btDevice.addEventListener('gattserverdisconnected', onDisconnect);
         device = btDevice;
-        setStatus(true, btDevice.name || 'Принтер');
-        showToast('Подключён!', 'success');
+        setStatus(true, btDevice.name);
+        showToast('Подключён: ' + btDevice.name, 'success');
         addLog('=== ГОТОВО К ПЕЧАТИ ===', 'success');
-
-        await sendHandshake();
       } catch (err) {
         addLog('Ошибка: ' + err.message, 'error');
         showToast('Ошибка: ' + err.message, 'error');
@@ -324,38 +199,16 @@
       }
     }
 
-    function onDisconnect() {
-      addLog('Отключено', 'error');
-      device = null; server = null; writeChar = null; notifyChar = null; printerService = null;
-      setStatus(false);
-    }
-
-    function onNotify(event) {
-      var val = new Uint8Array(event.target.value.buffer);
-      var hex = Array.from(val).map(function(b) { return b.toString(16).padStart(2, '0'); }).join(' ');
-      addLog('RX: ' + hex);
-    }
-
-    async function sendCommand(data) {
-      if (!writeChar) throw new Error('Write не доступен');
-      var hex = Array.from(data).map(function(b) { return b.toString(16).padStart(2, '0'); }).join(' ');
-      addLog('TX (' + data.length + '): ' + hex);
-      try {
-        await writeChar.writeValueWithoutResponse(data);
-      } catch(e) {
-        await writeChar.writeValue(data);
+    async function sendRaw(data) {
+      if (!txChar) throw new Error('Не подключён');
+      var offset = 0;
+      while (offset < data.length) {
+        var end = Math.min(offset + BLE_CHUNK_SIZE, data.length);
+        var chunk = data.slice(offset, end);
+        await txChar.writeValueWithoutResponse(chunk);
+        offset = end;
+        if (offset < data.length) await sleep(BLE_CHUNK_DELAY);
       }
-    }
-
-    async function sendHandshake() {
-      var cmd = new Uint8Array([
-        0x10, 0xff, 0xff, 0x03, 0x03, 0x04, 0x00, 0x00, 0x00, 0x90,
-        0x73, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x20, 0x73, 0x74, 0x61,
-        0x72, 0x74, 0x0d, 0x0a
-      ]);
-      addLog('Handshake...');
-      await sendCommand(cmd);
-      await sleep(500);
     }
 
     async function printReceipt() {
@@ -389,97 +242,98 @@
           ''
         ];
 
-        var bitmap = renderReceiptToBitmap(lines);
-        addLog('Bitmap: ' + bitmap.width + 'x' + bitmap.height);
+        var pixels = renderTextToPixels(lines);
+        addLog('Pixels: ' + pixels[0].length + 'x' + pixels.length);
 
-        await sendHandshake();
-        await sleep(300);
+        var job = buildPrintJob(pixels);
+        addLog('Print job: ' + job.length + ' bytes');
 
-        await sendBitmapData(bitmap);
-        await sleep(200);
-
-        await feedPaper(50);
+        await sendRaw(job);
+        await sleep(1500);
 
         addLog('Печать завершена!', 'success');
         showToast('✅ Напечатано!', 'success');
       } catch (err) {
-        addLog('Ошибка печати: ' + err.message, 'error');
+        addLog('Ошибка: ' + err.message, 'error');
         showToast('❌ ' + err.message, 'error');
       } finally {
         setTimeout(function() { btnPrint.disabled = false; }, 3000);
       }
     }
 
-    function renderReceiptToBitmap(lines) {
+    function renderTextToPixels(lines) {
       var canvas = document.getElementById('receiptCanvas');
       var ctx = canvas.getContext('2d');
-      var width = 384;
       var lineHeight = 24;
       var padding = 10;
       var height = lines.length * lineHeight + padding * 2;
 
-      canvas.width = width;
+      canvas.width = PRINTER_WIDTH;
       canvas.height = height;
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, PRINTER_WIDTH, height);
       ctx.fillStyle = '#000000';
       ctx.font = '16px monospace';
       ctx.textBaseline = 'top';
-
       lines.forEach(function(line, i) {
         ctx.fillText(line, padding, padding + i * lineHeight);
       });
 
-      var imageData = ctx.getImageData(0, 0, width, height);
-      var data = imageData.data;
-      for (var i = 0; i < data.length; i += 4) {
-        var gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
-        var bw = gray < 128 ? 0 : 255;
-        data[i] = bw; data[i+1] = bw; data[i+2] = bw;
+      var imgData = ctx.getImageData(0, 0, PRINTER_WIDTH, height);
+      var pixels = [];
+      for (var y = 0; y < height; y++) {
+        var row = [];
+        for (var x = 0; x < PRINTER_WIDTH; x++) {
+          var idx = (y * PRINTER_WIDTH + x) * 4;
+          var gray = imgData.data[idx] * 0.299 + imgData.data[idx+1] * 0.587 + imgData.data[idx+2] * 0.114;
+          row.push(gray < 128);
+        }
+        pixels.push(row);
       }
-      return { width: width, height: height, data: imageData.data };
+      return pixels;
     }
 
-    async function sendBitmapData(bitmap) {
-      var bytesPerRow = Math.ceil(bitmap.width / 8);
-      addLog('Отправка bitmap (' + bitmap.height + ' строк)...');
+    function buildPrintJob(pixels) {
+      var height = pixels.length;
+      var width = pixels[0].length;
+      var widthBytes = Math.ceil(width / 8);
+      var bitmap = new Uint8Array(widthBytes * height);
 
-      for (var y = 0; y < bitmap.height; y++) {
-        var rowBytes = new Uint8Array(bytesPerRow);
-        for (var x = 0; x < bitmap.width; x++) {
-          var idx = (y * bitmap.width + x) * 4;
-          if (bitmap.data[idx] < 128) {
-            rowBytes[Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
+      for (var y = 0; y < height; y++) {
+        for (var x = 0; x < width; x++) {
+          if (pixels[y][x]) {
+            bitmap[y * widthBytes + (x >> 3)] |= 1 << (7 - (x & 7));
           }
         }
-
-        var cmd = new Uint8Array(10 + bytesPerRow);
-        cmd[0] = 0x10; cmd[1] = 0xff; cmd[2] = 0xff;
-        cmd[3] = 0x03; cmd[4] = 0x03; cmd[5] = 0x0e;
-        cmd[6] = bytesPerRow & 0xff;
-        cmd[7] = (bytesPerRow >> 8) & 0xff;
-        cmd[8] = 0x00; cmd[9] = 0xa1;
-        for (var b = 0; b < bytesPerRow; b++) cmd[10 + b] = rowBytes[b];
-
-        await sendCommand(cmd);
       }
-      addLog('Bitmap отправлен', 'success');
-    }
 
-    async function feedPaper(dots) {
-      var cmd = new Uint8Array([
-        0x10, 0xff, 0xff, 0x03, 0x03, 0x0a, 0x00, 0x00, 0x00, 0xa0,
-        0x00, 0x00, 0x00, 0x00
+      var header = new Uint8Array([
+        0x1d, 0x76, 0x30, 0x00,
+        widthBytes & 0xff, (widthBytes >> 8) & 0xff,
+        height & 0xff, (height >> 8) & 0xff
       ]);
-      addLog('Подача бумаги');
-      await sendCommand(cmd);
+
+      var init = new Uint8Array([0x1b, 0x40]);
+      var feed = new Uint8Array([0x1b, 0x64, 0x04]);
+      var lf = new Uint8Array([0x0a, 0x0a, 0x0a]);
+
+      var total = init.length + header.length + bitmap.length + feed.length + lf.length;
+      var job = new Uint8Array(total);
+      var pos = 0;
+      job.set(init, pos); pos += init.length;
+      job.set(header, pos); pos += header.length;
+      job.set(bitmap, pos); pos += bitmap.length;
+      job.set(feed, pos); pos += feed.length;
+      job.set(lf, pos);
+
+      return job;
     }
 
     function sleep(ms) {
       return new Promise(function(r) { setTimeout(r, ms); });
     }
 
-    addLog('Приложение загружено');
+    addLog('Приложение загружено (v2 - ISSC/ESC-POS)');
     addLog('Web Bluetooth: ' + (navigator.bluetooth ? 'ДА' : 'НЕТ'));
     if (!navigator.bluetooth) {
       showToast('Web Bluetooth не поддерживается', 'error', 5000);
